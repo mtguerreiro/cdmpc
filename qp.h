@@ -29,9 +29,10 @@
  * @param K Pointer to K matrix.
  * @param nIter Maximum number of iterations.
  * @param lambda Buffer to hold the solution.
+ * @param lambdaSize Size of the lambda vector.
  * @return Number of iterations required to find solution.
  */
-uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda);
+uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize);
 //-----------------------------------------------------------------------------
 //=============================================================================
 
