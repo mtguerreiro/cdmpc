@@ -20,7 +20,7 @@
 //-----------------------------------------------------------------------------
 uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize){
 
-	float lambdap[12];
+	float lambdap[lambdaSize];
 	float *h;
 	float *k;
 
