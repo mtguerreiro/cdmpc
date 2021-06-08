@@ -3,6 +3,8 @@
  *
  *  Created on: 27.05.2021
  *      Author: mguerreiro
+ *
+ *TODO: better initialize lambdap to zero.
  */
 
 //=============================================================================
@@ -18,11 +20,15 @@
 //-----------------------------------------------------------------------------
 uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize){
 
-	float lambdap[4] = {0};
+	float lambdap[12];
 	float *h;
 	float *k;
 
 	uint32_t n, i, j;
+
+	for(i = 0; i < lambdaSize; i++){
+		lambdap[i] = 0;
+	}
 
 	n = 0;
 	k = K;
@@ -73,7 +79,7 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 //		n++;
 	}
 
-	for(j = 0; j < 4; j++){
+	for(j = 0; j < lambdaSize; j++){
 		lambda[j] = lambdap[j];
 	}
 

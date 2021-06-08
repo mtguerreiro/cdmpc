@@ -22,6 +22,8 @@
 //-----------------------------------------------------------------------------
 float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
 
+	uint32_t i;
+
 	/* Augmented states */
 	float xa[3];
 
@@ -49,18 +51,23 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
 	sumv((float *)auxm1, (float *)auxm2, DMPC_BUCK_CONFIG_NC, Fj);
 
 	/* Computes gamma */
-	mulmv((float *)Fx, 1, xa, 3, &aux1);
-	gam[0] = -DMPC_BUCK_CONFIG_U_MIN + u_1;
-	gam[1] = DMPC_BUCK_CONFIG_U_MAX - u_1;
-	gam[2] = -(DMPC_BUCK_CONFIG_IL_MIN - x[0]) + aux1;
-	gam[3] = (DMPC_BUCK_CONFIG_IL_MAX - x[0]) - aux1;
+	mulmv((float *)Fx, DMPC_BUCK_CONFIG_NR, xa, 3, &aux1);
+	for(i = 0; i < DMPC_BUCK_CONFIG_NR; i++){
+		gam[i] = -DMPC_BUCK_CONFIG_U_MIN + u_1;
+		gam[i + DMPC_BUCK_CONFIG_NR] = DMPC_BUCK_CONFIG_U_MAX - u_1;
+
+		//mulmv((float *)Fx, DMPC_BUCK_CONFIG_NR, xa, 3, &aux1);
+		mulmv((float *)Fx[i], DMPC_BUCK_CONFIG_NR, xa, 3, &aux1);
+		gam[i + 2 * DMPC_BUCK_CONFIG_NR] = -(DMPC_BUCK_CONFIG_IL_MIN - x[0]) + aux1;
+		gam[i + 3 * DMPC_BUCK_CONFIG_NR] = (DMPC_BUCK_CONFIG_IL_MAX - x[0]) - aux1;
+	}
 
 	/* Computes Kj */
 	mulmv((float *)Kj_1, DMPC_BUCK_CONFIG_NLAMBDA, Fj, DMPC_BUCK_CONFIG_NC, (float *)auxm1);
 	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	qpHild((float *)Hj, Kj, 4, lambda, DMPC_BUCK_CONFIG_NLAMBDA);
+	qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA);
 
 	/* DU */
 	mulmv(DU_1, 1, Fj, DMPC_BUCK_CONFIG_NC, &DU);
