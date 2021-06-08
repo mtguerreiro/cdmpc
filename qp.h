@@ -22,6 +22,9 @@
 /**
  * @ brief Hildreth's quadratic programming algorithm.
  *
+ * For the H matrix, we consider that the diagonal elements are already
+ * inverted and with the sign flipped.
+ *
  * @param H Pointer to H matrix.
  * @param K Pointer to K matrix.
  * @param nIter Maximum number of iterations.

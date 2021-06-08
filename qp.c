@@ -29,22 +29,22 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda){
 		h = H;
 		k = K;
 
-		lambdap[0] = -1 / h[0] * (*k + h[1] * lambdap[1] + h[2] * lambdap[2] + h[3] * lambdap[3]);
+		lambdap[0] = h[0] * (*k + h[1] * lambdap[1] + h[2] * lambdap[2] + h[3] * lambdap[3]);
 		if( lambdap[0] < 0 ) lambdap[0] = 0;
 
 		k++;
 		h = h + 4;
-		lambdap[1] = -1 / h[1] * (*k + h[0] * lambdap[0] + h[2] * lambdap[2] + h[3] * lambdap[3]);
+		lambdap[1] = h[1] * (*k + h[0] * lambdap[0] + h[2] * lambdap[2] + h[3] * lambdap[3]);
 		if( lambdap[1] < 0 ) lambdap[1] = 0;
 
 		k++;
 		h = h + 4;
-		lambdap[2] = -1 / h[2] * (*k + h[0] * lambdap[0] + h[1] * lambdap[1] + h[3] * lambdap[3]);
+		lambdap[2] = h[2] * (*k + h[0] * lambdap[0] + h[1] * lambdap[1] + h[3] * lambdap[3]);
 		if( lambdap[2] < 0 ) lambdap[2] = 0;
 
 		k++;
 		h = h + 4;
-		lambdap[3] = -1 / h[3] * (*k + h[0] * lambdap[0] + h[1] * lambdap[1] + h[2] * lambdap[2]);
+		lambdap[3] = h[3] * (*k + h[0] * lambdap[0] + h[1] * lambdap[1] + h[2] * lambdap[2]);
 		if( lambdap[3] < 0 ) lambdap[3] = 0;
 
 		i++;
