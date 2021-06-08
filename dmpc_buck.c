@@ -23,6 +23,7 @@
 float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
 
 	uint32_t i;
+	uint32_t n_iter;
 
 	/* Augmented states */
 	float xa[3];
@@ -67,7 +68,7 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
 	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA);
+	n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA);
 
 	/* DU */
 	mulmv(DU_1, 1, Fj, DMPC_BUCK_CONFIG_NC, &DU);

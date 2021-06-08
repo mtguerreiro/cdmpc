@@ -5,6 +5,7 @@
  *      Author: mguerreiro
  *
  *TODO: better initialize lambdap to zero.
+ *TODO: implement stopping condition better. Is it possible do to it without having to save all previous values?
  */
 
 //=============================================================================
@@ -24,10 +25,13 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 	float *h;
 	float *k;
 
+	float aux;
+
 	uint32_t n, i, j;
 
 	for(i = 0; i < lambdaSize; i++){
 		lambdap[i] = 0;
+		lambda[i] = 0;
 	}
 
 	n = 0;
@@ -55,33 +59,25 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 
 		n++;
 
-//		h = H;
-//		k = K;
-//
-//		lambdap[0] = h[0] * (*k + h[1] * lambdap[1] + h[2] * lambdap[2] + h[3] * lambdap[3]);
-//		if( lambdap[0] < 0 ) lambdap[0] = 0;
-//
-//		k++;
-//		h = h + 4;
-//		lambdap[1] = h[1] * (*k + h[0] * lambdap[0] + h[2] * lambdap[2] + h[3] * lambdap[3]);
-//		if( lambdap[1] < 0 ) lambdap[1] = 0;
-//
-//		k++;
-//		h = h + 4;
-//		lambdap[2] = h[2] * (*k + h[0] * lambdap[0] + h[1] * lambdap[1] + h[3] * lambdap[3]);
-//		if( lambdap[2] < 0 ) lambdap[2] = 0;
-//
-//		k++;
-//		h = h + 4;
-//		lambdap[3] = h[3] * (*k + h[0] * lambdap[0] + h[1] * lambdap[1] + h[2] * lambdap[2]);
-//		if( lambdap[3] < 0 ) lambdap[3] = 0;
-//
-//		n++;
+		aux = 0;
+		for(i = 0; i < lambdaSize; i++){
+			if( lambdap[i] > lambda[i] ) aux += (lambdap[i] - lambda[i]);
+			else aux += (lambda[i] - lambdap[i]);
+		}
+		if( aux < 1e-6 ){
+			break;
+		}
+		else{
+			for(j = 0; j < lambdaSize; j++){
+				lambda[j] = lambdap[j];
+			}
+		}
+
 	}
 
-	for(j = 0; j < lambdaSize; j++){
-		lambda[j] = lambdap[j];
-	}
+//	for(j = 0; j < lambdaSize; j++){
+//		lambda[j] = lambdap[j];
+//	}
 
 	return n;
 }
