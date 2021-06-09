@@ -5,7 +5,6 @@
  *      Author: mguerreiro
  *
  *TODO: better initialize lambdap to zero.
- *TODO: implement stopping condition better. Is it possible do to it without having to save all previous values?
  */
 
 //=============================================================================
@@ -19,19 +18,18 @@
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize){
+uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize, float tol){
 
+	uint32_t stopCond;
+	float res;
 	float lambdap[lambdaSize];
 	float *h;
 	float *k;
-
-	float aux;
 
 	uint32_t n, i, j;
 
 	for(i = 0; i < lambdaSize; i++){
 		lambdap[i] = 0;
-		lambda[i] = 0;
 	}
 
 	n = 0;
@@ -39,9 +37,12 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 	while( n < nIter ){
 
 		h = H;
+		stopCond = 0;
 
+		/* One iteration through the lambda vector */
 		for(i = 0; i < lambdaSize; i++){
 
+			res = lambdap[i];
 			lambdap[i] = 0;
 			for(j = 0; j < i; j++){
 				lambdap[i] += h[j] * lambdap[j];
@@ -54,30 +55,28 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 			lambdap[i] = h[i] * (k[i] + lambdap[i]);
 			if( lambdap[i] < 0 ) lambdap[i] = 0;
 
+			if( stopCond == 0 ){
+				if( res > lambdap[i] ) res = res - lambdap[i];
+				else res = lambdap[i] - res;
+				if( res > tol ) stopCond = 1;
+			}
+
 			h = h + lambdaSize;
 		}
 
 		n++;
 
-		aux = 0;
-		for(i = 0; i < lambdaSize; i++){
-			if( lambdap[i] > lambda[i] ) aux += (lambdap[i] - lambda[i]);
-			else aux += (lambda[i] - lambdap[i]);
-		}
-		if( aux < 1e-6 ){
-			break;
-		}
-		else{
-			for(j = 0; j < lambdaSize; j++){
-				lambda[j] = lambdap[j];
-			}
-		}
-
+		/*
+		 * If stopCond is zero, all lambdas had a difference between the new
+		 * and the previous value that is smaller than the tolerance; so we
+		 * have reached the stopping condition.
+		 */
+		if( stopCond == 0 ) break;
 	}
 
-//	for(j = 0; j < lambdaSize; j++){
-//		lambda[j] = lambdap[j];
-//	}
+	for(j = 0; j < lambdaSize; j++){
+		lambda[j] = lambdap[j];
+	}
 
 	return n;
 }

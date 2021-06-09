@@ -68,7 +68,7 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
 	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA);
+	n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA, 1e-6);
 
 	/* DU */
 	mulmv(DU_1, 1, Fj, DMPC_BUCK_CONFIG_NC, &DU);

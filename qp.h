@@ -30,9 +30,10 @@
  * @param nIter Maximum number of iterations.
  * @param lambda Buffer to hold the solution.
  * @param lambdaSize Size of the lambda vector.
+ * @param tol Tolerance for stopping condition.
  * @return Number of iterations required to find solution.
  */
-uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize);
+uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize, float tol);
 //-----------------------------------------------------------------------------
 //=============================================================================
 
