@@ -20,7 +20,7 @@
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
+float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 
 	uint32_t i;
 	uint32_t n_iter;
@@ -67,6 +67,8 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1){
 
 	/* Opt */
 	n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA, 1e-6);
+    
+    if( iters != 0 ) *iters = n_iter;
 
 	/* DU */
 	mulmv(DU_1, 1, Fj, DMPC_BUCK_CONFIG_NC, &DU);
