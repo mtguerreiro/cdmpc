@@ -29,8 +29,13 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 	float xa[3];
 
 	/* Auxiliary variables for intermediate computations */
-	float auxm1[DMPC_BUCK_CONFIG_NLAMBDA][DMPC_BUCK_CONFIG_NLAMBDA];
-	float auxm2[DMPC_BUCK_CONFIG_NLAMBDA][DMPC_BUCK_CONFIG_NLAMBDA];
+#if DMPC_BUCK_CONFIG_NC > DMPC_BUCK_CONFIG_NLAMBDA
+	float auxm1[DMPC_BUCK_CONFIG_NC][DMPC_BUCK_CONFIG_NC];
+	float auxm2[DMPC_BUCK_CONFIG_NC][DMPC_BUCK_CONFIG_NC];
+#else
+    float auxm1[DMPC_BUCK_CONFIG_NLAMBDA][DMPC_BUCK_CONFIG_NLAMBDA];
+    float auxm2[DMPC_BUCK_CONFIG_NLAMBDA][DMPC_BUCK_CONFIG_NLAMBDA];
+#endif
 	float aux1;
 
 	/* Matrices and vectors */
@@ -66,7 +71,7 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA, 1e-6);
+	n_iter = qpHild((float *)Hj, Kj, 4, lambda, DMPC_BUCK_CONFIG_NLAMBDA, (float)1e-6);
     
     if( iters != 0 ) *iters = n_iter;
 

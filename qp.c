@@ -22,7 +22,7 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 
 	uint32_t stopCond;
 	float res;
-	float lambdap[lambdaSize];
+	float lambdap[QP_CONFIG_MAX_LAMBDA];
 	float *h;
 	float *k;
 
