@@ -18,7 +18,12 @@
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-#define QP_CONFIG_MAX_LAMBDA    4
+/**
+ * @brief Defines max. number of variables.
+ *
+ * This is required in order to create a static buffer for the qp function.
+ */
+#define QP_CONFIG_MAX_LAMBDA    200
 
 //=============================================================================
 
@@ -27,7 +32,7 @@
 //=============================================================================
 //-----------------------------------------------------------------------------
 /**
- * @ brief Hildreth's quadratic programming algorithm.
+ * @brief Hildreth's quadratic programming algorithm.
  *
  * For the H matrix, we consider that the diagonal elements are already
  * inverted and with the sign flipped.
@@ -41,6 +46,23 @@
  * @return Number of iterations required to find solution.
  */
 uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize, float tol);
+//-----------------------------------------------------------------------------
+/**
+ * @brief Hildreth's quadratic programming algorithm.
+ *
+ * For the H matrix, we consider that the diagonal elements are already
+ * inverted and with the sign flipped.
+ *
+ * This function considers that there are only 4 variables to optimize.
+ *
+ * @param H Pointer to H matrix.
+ * @param K Pointer to K matrix.
+ * @param nIter Maximum number of iterations.
+ * @param lambda Buffer to hold the solution.
+ * @param tol Tolerance for stopping condition.
+ * @return Number of iterations required to find solution.
+ */
+uint32_t qpHild4(float *H, float *K, uint32_t nIter, float* lambda, float tol);
 //-----------------------------------------------------------------------------
 //=============================================================================
 
