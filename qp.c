@@ -146,4 +146,38 @@ uint32_t qpHild4(float *H, float *K, uint32_t nIter, float* lambda, float tol){
     return n;
 }
 //-----------------------------------------------------------------------------
+void qpHild4FixedIter(float *H, float *K, uint32_t nIter, float* lambda){
+
+    float *h;
+    float *k;
+
+    uint32_t n;
+
+    /* Initial value for lambda */
+    lambda[0] = 0;
+    lambda[1] = 0;
+    lambda[2] = 0;
+    lambda[3] = 0;
+
+    n = 0;
+    k = K;
+    h = H;
+    while( n < nIter ){
+
+        lambda[0] = h[0] * (k[0] + h[1] * lambda[1] + h[2] * lambda[2] + h[3] * lambda[3]);
+        if( lambda[0] < 0 ) lambda[0] = 0;
+
+        lambda[1] = h[5] * (k[1] + h[4] * lambda[0] + h[6] * lambda[2] + h[7] * lambda[3]);
+        if( lambda[1] < 0 ) lambda[1] = 0;
+
+        lambda[2] = h[10] * (k[2] + h[8] * lambda[0] + h[9] * lambda[1] + h[11] * lambda[3]);
+        if( lambda[2] < 0 ) lambda[2] = 0;
+
+        lambda[3] = h[15] * (k[3] + h[12] * lambda[0] + h[13] * lambda[1] + h[14] * lambda[2]);
+        if( lambda[3] < 0 ) lambda[3] = 0;
+
+        n++;
+    }
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
