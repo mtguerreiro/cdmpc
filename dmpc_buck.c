@@ -71,8 +71,8 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	//n_iter = qpHild((float *)Hj, Kj, 5, lambda, DMPC_BUCK_CONFIG_NLAMBDA, (float)1e-6);
-	n_iter = qpHild4((float *)Hj, Kj, 5, lambda, (float)1e-6);
+	//n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA, (float)1e-6);
+	n_iter = qpHild4((float *)Hj, Kj, 100, lambda, (float)1e-6);
     
     if( iters != 0 ) *iters = n_iter;
 
