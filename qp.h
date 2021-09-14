@@ -69,6 +69,23 @@ uint32_t qpHild4(float *H, float *K, uint32_t nIter, float* lambda, float tol);
  */
 void qpHild4FixedIter(float *H, float *K, uint32_t nIter, float* lambda);
 //-----------------------------------------------------------------------------
+/**
+ * @brief Hildreth's quadratic programming algorithm.
+ *
+ * Runs Hildreth's QP procedure for a fixed number of iterations.
+ *
+ * For the H matrix, we consider that the diagonal elements are already
+ * inverted and with the sign flipped.
+ *
+ * This function considers that there are only 8 variables to optimize.
+ *
+ * @param H Pointer to H matrix.
+ * @param K Pointer to K matrix.
+ * @param nIter Maximum number of iterations.
+ * @param lambda Buffer to hold the solution.
+ */
+void qpHild8FixedIter(float *H, float *K, uint32_t nIter, float* lambda);
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 #endif /* QP_H_ */

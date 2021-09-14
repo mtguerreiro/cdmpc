@@ -180,4 +180,54 @@ void qpHild4FixedIter(float *H, float *K, uint32_t nIter, float* lambda){
     }
 }
 //-----------------------------------------------------------------------------
+void qpHild8FixedIter(float *H, float *K, uint32_t nIter, float* lambda){
+
+    float *h;
+    float *k;
+
+    uint32_t n;
+
+    /* Initial value for lambda */
+    lambda[0] = 0;
+    lambda[1] = 0;
+    lambda[2] = 0;
+    lambda[3] = 0;
+    lambda[4] = 0;
+    lambda[5] = 0;
+    lambda[6] = 0;
+    lambda[7] = 0;
+
+    n = 0;
+    k = K;
+    h = H;
+    while( n < nIter ){
+
+        lambda[0] = h[0] * (k[0] + h[1] * lambda[1] + h[2] * lambda[2] + h[3] * lambda[3] + h[4] * lambda[4] + h[5] * lambda[5] + h[6] * lambda[6] + h[7] * lambda[7]);
+        if( lambda[0] < 0 ) lambda[0] = 0;
+
+        lambda[1] = h[9] * (k[1] + h[8] * lambda[0] + h[10] * lambda[2] + h[11] * lambda[3] + h[12] * lambda[4] + h[13] * lambda[5] + h[14] * lambda[6] + h[15] * lambda[7]);
+        if( lambda[1] < 0 ) lambda[1] = 0;
+
+        lambda[2] = h[18] * (k[2] + h[16] * lambda[0] + h[17] * lambda[1] + h[19] * lambda[3] + h[20] * lambda[4] + h[21] * lambda[5] + h[22] * lambda[6] + h[23] * lambda[7]);
+        if( lambda[2] < 0 ) lambda[2] = 0;
+
+        lambda[3] = h[27] * (k[3] + h[24] * lambda[0] + h[25] * lambda[1] + h[26] * lambda[2] + h[28] * lambda[4] + h[29] * lambda[5] + h[30] * lambda[6] + h[31] * lambda[7]);
+        if( lambda[3] < 0 ) lambda[3] = 0;
+
+        lambda[4] = h[36] * (k[4] + h[32] * lambda[0] + h[33] * lambda[1] + h[34] * lambda[2] + h[35] * lambda[3] + h[37] * lambda[5] + h[38] * lambda[6] + h[39] * lambda[7]);
+        if( lambda[4] < 0 ) lambda[4] = 0;
+
+        lambda[5] = h[45] * (k[5] + h[40] * lambda[0] + h[41] * lambda[1] + h[42] * lambda[2] + h[43] * lambda[3] + h[44] * lambda[4] + h[46] * lambda[6] + h[47] * lambda[7]);
+        if( lambda[5] < 0 ) lambda[5] = 0;
+
+        lambda[6] = h[54] * (k[6] + h[48] * lambda[0] + h[49] * lambda[1] + h[50] * lambda[2] + h[51] * lambda[3] + h[52] * lambda[4] + h[53] * lambda[5] + h[55] * lambda[7]);
+        if( lambda[6] < 0 ) lambda[6] = 0;
+
+        lambda[7] = h[63] * (k[7] + h[56] * lambda[0] + h[57] * lambda[1] + h[58] * lambda[2] + h[59] * lambda[3] + h[60] * lambda[4] + h[61] * lambda[5] + h[62] * lambda[6]);
+        if( lambda[7] < 0 ) lambda[7] = 0;
+
+        n++;
+    }
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
