@@ -13,6 +13,10 @@
 
 #include "mvops.h"
 #include "qp.h"
+
+//#include "matlab/qpm3.h"
+#include "matlab/qpm2.h"
+//#include "matlab/qpm.h"
 //=============================================================================
 
 
@@ -43,6 +47,8 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 	float Kj[DMPC_BUCK_CONFIG_NLAMBDA];
 	float gam[DMPC_BUCK_CONFIG_NLAMBDA];
 	float lambda[DMPC_BUCK_CONFIG_NLAMBDA];
+	float DUVec[DMPC_BUCK_CONFIG_NC];
+	float status;
 
 	/* Optimal control increment */
 	float DU;
@@ -66,22 +72,34 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 		gam[i + 3 * DMPC_BUCK_CONFIG_NR] = (DMPC_BUCK_CONFIG_IL_MAX - x[0]) - auxm1[0][i];
 	}
 
-	/* Computes Kj */
-	mulmv((float *)Kj_1, DMPC_BUCK_CONFIG_NLAMBDA, Fj, DMPC_BUCK_CONFIG_NC, (float *)auxm1);
-	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
+//=========================================================
 
-	/* Opt */
-	n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA, (float)1e-6);
-	//n_iter = qpHild4((float *)Hj, Kj, 100, lambda, (float)1e-6);
-	//qpHild4FixedIter((float *)Hj, Kj, 100, lambda);
-	//n_iter = 100;
-    
-    if( iters != 0 ) *iters = n_iter;
+	qpm2(Fj, gam, DUVec, &status);
+	DU = DUVec[0];
+	if( iters != 0 ) *iters = (uint32_t)status;
 
-	/* DU */
-	mulmv(DU_1, 1, Fj, DMPC_BUCK_CONFIG_NC, &DU);
-	mulmv(DU_2, 1, lambda, DMPC_BUCK_CONFIG_NLAMBDA, &aux1);
-	DU = DU + aux1;
+//=========================================================
+
+//=========================================================
+//	/* Computes Kj */
+//	mulmv((float *)Kj_1, DMPC_BUCK_CONFIG_NLAMBDA, Fj, DMPC_BUCK_CONFIG_NC, (float *)auxm1);
+//	sumv(gam, (float *)auxm1, DMPC_BUCK_CONFIG_NLAMBDA, Kj);
+//
+//	/* Opt */
+//	//n_iter = qpHild((float *)Hj, Kj, 100, lambda, DMPC_BUCK_CONFIG_NLAMBDA, (float)1e-6);
+//	//n_iter = qpHild4((float *)Hj, Kj, 100, lambda, (float)1e-6);
+//
+//	//qpHild4FixedIter((float *)Hj, Kj, 10, lambda);
+//	//n_iter = 10;
+//
+//
+//    if( iters != 0 ) *iters = n_iter;
+//
+//	/* DU */
+//	mulmv(DU_1, 1, Fj, DMPC_BUCK_CONFIG_NC, &DU);
+//	mulmv(DU_2, 1, lambda, DMPC_BUCK_CONFIG_NLAMBDA, &aux1);
+//	DU = DU + aux1;
+//=========================================================
 
 	return DU;
 }
