@@ -75,7 +75,7 @@ float dmpcBuckOpt(float *x, float *x_1, float r, float u_1, uint32_t* iters){
 	}
 
 	du = dmpcBuckHildOpt(iters);
-	//du = dmpcBuckCVXGENOpt(x, x_1, r, u_1, iters);
+	//du = dmpcBuckCVXGENOpt(iters);
 
 	return du;
 }
@@ -151,6 +151,14 @@ static float dmpcBuckCVXGENOpt(uint32_t* iters){
 	uint32_t n_iter;
 
 	float DU;
+
+	/* We need to copy Fj and gam to CVXGEN settings */
+	for(i = 0; i < DMPC_BUCK_CONFIG_NC; i++){
+		params.Fj[i] = Fj[i];
+	}
+	for(i = 0; i < DMPC_BUCK_CONFIG_NLAMBDA; i++){
+		params.y[i] = gam[i];
+	}
 
 	settings.eps = 1e-2;
 	settings.resid_tol = 1e-2;
