@@ -27,13 +27,29 @@
 #define DMPC_BUCK_CONFIG_U_MIN		0
 #define DMPC_BUCK_CONFIG_U_MAX		1
 
- /* Matrices for QP solvers */
+/*
+ * Matrices for QP solvers 
+ *
+ * The matrices were generated considering the following problem:
+ *
+ * min (1/2) * DU' * Ej * DU + DU' * Fj
+ * DU
+ *
+ * s.t. M * DU <= gam
+ *
+ * The (1/2) term in from of DU' * Ej * DU needs to be considered in the QP
+ * solver selected, or the solution will appear to be inconsistent.
+ * Note that the Fj and gam matrices are usually updated online, while Ej
+ * and M are static.
+ */
 float Ej[6][6] = {{74.5318609 ,46.44163231,30.84199385,18.18834553, 8.79660161, 2.78156124},
  {46.44163231,43.87740395,22.811542  ,13.64075874, 6.68887115, 2.14417575},
  {30.84199385,22.811542  ,25.66207009, 9.55191259, 4.77635059, 1.5608265 },
  {18.18834553,13.64075874, 9.55191259,16.00988509, 3.09917513, 1.04345323},
  { 8.79660161, 6.68887115, 4.77635059, 3.09917513,11.69606178, 0.60363587},
  { 2.78156124, 2.14417575, 1.5608265 , 1.04345323, 0.60363587,10.25239667}};
+
+float Fj[6];
 
 float M[16][6] = {{ -1.        , -0.        , -0.        , -0.        , -0.        ,
    -0.        },
@@ -68,6 +84,7 @@ float M[16][6] = {{ -1.        , -0.        , -0.        , -0.        , -0.     
  { 24.3396114 , 18.90553232, 12.99278635,  6.66607032,  0.        ,
     0.        }};
 
+float gam[16];
 
  /* Matrices for Hildreth's QP procedure */
 float Fj_1[6] = {-16.69227755,-11.15563083, -6.88768825, -3.78089167, -1.70391711,
