@@ -27,9 +27,11 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 
 	uint32_t n, i, j;
 
+#if QP_CONFIG_WARM_START == 0
 	for(i = 0; i < lambdaSize; i++){
 		lambda[i] = 0;
 	}
+#endif
 
 	n = 0;
 	k = K;

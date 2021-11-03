@@ -23,6 +23,8 @@ Workspace work;
 Settings settings;
 //=============================================================================
 
+#define DMPC_BUCK_CONFIG_QP_HILD_WARM_START		QP_CONFIG_WARM_START
+
 //=============================================================================
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
@@ -96,8 +98,11 @@ static float dmpcBuckHildOpt(uint32_t* iters){
 
 	/* Matrices and vectors */
 	float Kj[DMPC_BUCK_CONFIG_NLAMBDA];
+#if (DMPC_BUCK_CONFIG_QP_HILD_WARM_START == 0)
 	float lambda[DMPC_BUCK_CONFIG_NLAMBDA];
-
+#else
+	static float lambda[DMPC_BUCK_CONFIG_NLAMBDA] = {0};
+#endif
 	/* Optimal control increment */
 	float DU;
 
