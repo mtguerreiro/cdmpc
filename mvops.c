@@ -25,6 +25,15 @@ void sumv(float *v1, float *v2, uint32_t dim, float *y){
 	}
 }
 //-----------------------------------------------------------------------------
+void subv(float *v1, float *v2, uint32_t dim, float *y){
+
+	uint32_t i;
+
+	for(i = 0; i < dim; i++){
+		*y++ = *v1++ - *v2++;
+	}
+}
+//-----------------------------------------------------------------------------
 void mulmv(float *m, uint32_t mDim, float *v, uint32_t nDim, float* y){
 
 	uint32_t i, j;

@@ -33,6 +33,18 @@
 void sumv(float *v1, float *v2, uint32_t dim, float *y);
 //-----------------------------------------------------------------------------
 /**
+ * @brief Subtracts two vectors, element-wise.
+ *
+ * Both vectors and the output must have the same dimension.
+ *
+ * @param v1 Pointer to first vector.
+ * @param v2 Pointer to second vector.
+ * @param dim Number of elements to subtract.
+ * @param y Pointer to buffer where the subtraction is to be stored.
+ */
+void subv(float *v1, float *v2, uint32_t dim, float *y);
+//-----------------------------------------------------------------------------
+/**
  * @brief Performs a matrix-vector multiplication.
  *
  * The number of columns of the matrix must be the same as the dimension of the
