@@ -23,21 +23,6 @@
 //Settings settings;
 //=============================================================================
 
-#define DMPC_INVERTER_CONFIG_NC_x_NU	DMPC_INVERTER_CONFIG_NC * DMPC_INVERTER_CONFIG_NU
-
-float DMPC_INVERTER_CONFIG_U_MIN[4] = {-375.27767497325675, -375.27767497325675, 162.5, 0.0};
-float DMPC_INVERTER_CONFIG_U_MAX[4] = {375.27767497325675, 375.27767497325675, 162.5, 0.0};
-
-#define DMPC_INVERTER_CONFIG_N_U_CONSTRAINTS		4
-
-float DMPC_INVERTER_CONFIG_XM_MIN[2] = {-15.0, -15.0};
-float DMPC_INVERTER_CONFIG_XM_MAX[2] = {15.0, 15.0};
-
-#define DMPC_INVERTER_CONFIG_N_STATE_CONSTRAINTS	2
-
-#define DMPC_INVERTER_CONFIG_N_STATES				6
-#define DMPC_INVERTER_CONFIG_N_AUG_STATES			8
-
 //=============================================================================
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
@@ -61,14 +46,14 @@ void dmpcInverterOpt(float *x, float *x_1, float *r, float *u_1, float *du, uint
 	uint32_t i, j, k, w;
 
 	/* Optimal control increment */
-	//float du[DMPC_INVERTER_CONFIG_NC];
+	//float du[DIM_CONFIG_NC];
 
 	/* Augmented states */
 	float xa[8];
 
 	/* Auxiliary variables for intermediate computations */
-	float auxm1[DMPC_INVERTER_CONFIG_NC_x_NU];
-	float auxm2[DMPC_INVERTER_CONFIG_NC_x_NU];
+	float auxm1[DIM_CONFIG_NC_x_NU];
+	float auxm2[DIM_CONFIG_NC_x_NU];
 
 	xa[0] = x[0] - x_1[0];
 	xa[1] = x[1] - x_1[1];
@@ -79,11 +64,11 @@ void dmpcInverterOpt(float *x, float *x_1, float *r, float *u_1, float *du, uint
 	xa[6] = x[0];
 	xa[7] = x[1];
 
-	//DMPC_INVERTER_CONFIG_U_MIN[2] = u_1[2];
-	//DMPC_INVERTER_CONFIG_U_MAX[2] = u_1[2];
+	DIM_CONFIG_U_MIN[2] = u_1[2];
+	DIM_CONFIG_U_MAX[2] = u_1[2];
 
-	//DMPC_INVERTER_CONFIG_U_MIN[3] = u_1[3];
-	//DMPC_INVERTER_CONFIG_U_MAX[3] = u_1[3];
+	DIM_CONFIG_U_MIN[3] = u_1[3];
+	DIM_CONFIG_U_MAX[3] = u_1[3];
 	/*
 	 * Computes Fj matrix. This matrix is given by:
 	 * Fj = Fj_1 * r + Fj_2 * xa,
@@ -92,9 +77,9 @@ void dmpcInverterOpt(float *x, float *x_1, float *r, float *u_1, float *du, uint
 	 * Fj_1 = -Phi.T * R_s_bar,
 	 * Fj_2 =  Phi.T * F
 	 */
-	mulmv((float *)Fj_1, DMPC_INVERTER_CONFIG_NC_x_NU, r, DMPC_INVERTER_CONFIG_NY, auxm1);
-	mulmv((float *)Fj_2, DMPC_INVERTER_CONFIG_NC_x_NU, xa, DMPC_INVERTER_CONFIG_N_AUG_STATES, auxm2);
-	sumv(auxm1, auxm2, DMPC_INVERTER_CONFIG_NC_x_NU, Fj);
+	mulmv((float *)DIM_Fj_1, DIM_CONFIG_NC_x_NU, r, DIM_CONFIG_NY, auxm1);
+	mulmv((float *)DIM_Fj_2, DIM_CONFIG_NC_x_NU, xa, DIM_CONFIG_NXA, auxm2);
+	sumv(auxm1, auxm2, DIM_CONFIG_NC_x_NU, DIM_Fj);
 
 	/*
 	 * Computes the gam vector (or y vector). This vector holds the control
@@ -103,31 +88,33 @@ void dmpcInverterOpt(float *x, float *x_1, float *r, float *u_1, float *du, uint
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-	for(i = 0; i < DMPC_INVERTER_CONFIG_NR; i++){
-		for(k = 0; k < DMPC_INVERTER_CONFIG_NU; k++){
-			gam[j++] = -DMPC_INVERTER_CONFIG_U_MIN[k] + u_1[k];
+	for(i = 0; i < DIM_CONFIG_NR; i++){
+		for(k = 0; k < DIM_CONFIG_NU; k++){
+			DIM_gam[j++] = -DIM_CONFIG_U_MIN[k] + u_1[k];
 		}
 	}
-	for(i = 0; i < DMPC_INVERTER_CONFIG_NR; i++){
-		for(k = 0; k < DMPC_INVERTER_CONFIG_NU; k++){
-			gam[j++] =  DMPC_INVERTER_CONFIG_U_MAX[k] - u_1[k];
+	for(i = 0; i < DIM_CONFIG_NR; i++){
+		for(k = 0; k < DIM_CONFIG_NU; k++){
+			DIM_gam[j++] =  DIM_CONFIG_U_MAX[k] - u_1[k];
 		}
 	}
 
 	/* Now, the state inequalities */
-	mulmv((float *)Fx, DMPC_INVERTER_CONFIG_NR * DMPC_INVERTER_CONFIG_N_STATE_CONSTRAINTS, xa, DMPC_INVERTER_CONFIG_N_STATES, auxm1);
-	w = 0;
-	for(i = 0; i < DMPC_INVERTER_CONFIG_NR; i++){
-		for( k = 0; k < DMPC_INVERTER_CONFIG_N_STATE_CONSTRAINTS; k++){
-			gam[j++] = -DMPC_INVERTER_CONFIG_XM_MIN[k] + x[k + 2] + auxm1[w++];
-		}
-	}
-	w = 0;
-	for(i = 0; i < DMPC_INVERTER_CONFIG_NR; i++){
-		for( k = 0; k < DMPC_INVERTER_CONFIG_N_STATE_CONSTRAINTS; k++){
-			gam[j++] =  DMPC_INVERTER_CONFIG_XM_MAX[k] - x[k + 2] - auxm1[w++];
-		}
-	}
+#if ( DIM_CONFIG_NXM_CTR != 0 )
+    mulmv((float *)DIM_Fx, DIM_CONFIG_NR * DIM_CONFIG_NXM_CTR, xa, DIM_CONFIG_NXM, auxm1);
+    w = 0;
+    for(i = 0; i < DIM_CONFIG_NR; i++){
+        for( k = 0; k < DIM_CONFIG_NXM_CTR; k++){
+            DIM_gam[j++] = -DIM_CONFIG_XM_MIN[k] + x[DIM_CONFIG_XM_LIM_IDX[k]] + auxm1[w++];
+        }
+    }
+    w = 0;
+    for(i = 0; i < DIM_CONFIG_NR; i++){
+        for( k = 0; k < DIM_CONFIG_NXM_CTR; k++){
+            DIM_gam[j++] =  DIM_CONFIG_XM_MAX[k] - x[DIM_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
+        }
+    }   
+#endif
 
 	dmpcInverterHildOpt(du, iters);
 	//du = dmpcBuckCVXGENOpt(iters);
@@ -144,23 +131,23 @@ static void dmpcInverterHildOpt(float *du, uint32_t* iters){
 	uint32_t n_iter;
 
 	/* Auxiliary variables for intermediate computations */
-	float auxm1[DMPC_INVERTER_CONFIG_NLAMBDA];
+	float auxm1[DIM_CONFIG_NLAMBDA];
 	float aux1;
 
 	/* Matrices and vectors */
-	float Kj[DMPC_INVERTER_CONFIG_NLAMBDA];
-	float lambda[DMPC_INVERTER_CONFIG_NLAMBDA];
+	float Kj[DIM_CONFIG_NLAMBDA];
+	float lambda[DIM_CONFIG_NLAMBDA];
 	//static float lambda[DMPC_INVERTER_CONFIG_NLAMBDA] = {0};
 
 	/* Optimal control increment */
 	//float DU;
 
 	/* Computes Kj */
-	mulmv((float *)Kj_1, DMPC_INVERTER_CONFIG_NLAMBDA, Fj, DMPC_INVERTER_CONFIG_NC_x_NU, (float *)auxm1);
-	sumv(gam, (float *)auxm1, DMPC_INVERTER_CONFIG_NLAMBDA, Kj);
+	mulmv((float *)DIM_Kj_1, DIM_CONFIG_NLAMBDA, DIM_Fj, DIM_CONFIG_NC_x_NU, (float *)auxm1);
+	sumv(DIM_gam, (float *)auxm1, DIM_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	n_iter = qpHild((float *)Hj, Kj, 20000, lambda, DMPC_INVERTER_CONFIG_NLAMBDA, (float)1e-4);
+	n_iter = qpHild((float *)DIM_Hj, Kj, 20000, lambda, DIM_CONFIG_NLAMBDA, (float)1e-6);
 	//n_iter = qpHild4((float *)Hj, Kj, 15, lambda, (float)1e-6);
 	//qpHild4FixedIter((float *)Hj, Kj, 8, lambda);
 	//n_iter = 15;
@@ -168,9 +155,9 @@ static void dmpcInverterHildOpt(float *du, uint32_t* iters){
     if( iters != 0 ) *iters = n_iter;
 
 	/* DU */
-	mulmv((float *)DU_1, DMPC_INVERTER_CONFIG_NU, Fj, DMPC_INVERTER_CONFIG_NC_x_NU, du);
-	mulmv((float *)DU_2, DMPC_INVERTER_CONFIG_NU, lambda, DMPC_INVERTER_CONFIG_NLAMBDA, auxm1);
-	sumv(du, auxm1, DMPC_INVERTER_CONFIG_NU, du);
+	mulmv((float *)DIM_DU_1, DIM_CONFIG_NU, DIM_Fj, DIM_CONFIG_NC_x_NU, du);
+	mulmv((float *)DIM_DU_2, DIM_CONFIG_NU, lambda, DIM_CONFIG_NLAMBDA, auxm1);
+	sumv(du, auxm1, DIM_CONFIG_NU, du);
 
 }
 //-----------------------------------------------------------------------------
