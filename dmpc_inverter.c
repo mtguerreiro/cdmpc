@@ -64,11 +64,11 @@ void dmpcInverterOpt(float *x, float *x_1, float *r, float *u_1, float *du, uint
 	xa[6] = x[0];
 	xa[7] = x[1];
 
-	DIM_CONFIG_U_MIN[2] = u_1[2];
-	DIM_CONFIG_U_MAX[2] = u_1[2];
+	//DIM_CONFIG_U_MIN[2] = u_1[2];
+	//DIM_CONFIG_U_MAX[2] = u_1[2];
 
-	DIM_CONFIG_U_MIN[3] = u_1[3];
-	DIM_CONFIG_U_MAX[3] = u_1[3];
+	//DIM_CONFIG_U_MIN[3] = u_1[3];
+	//DIM_CONFIG_U_MAX[3] = u_1[3];
 	/*
 	 * Computes Fj matrix. This matrix is given by:
 	 * Fj = Fj_1 * r + Fj_2 * xa,
@@ -137,7 +137,7 @@ static void dmpcInverterHildOpt(float *du, uint32_t* iters){
 	/* Matrices and vectors */
 	float Kj[DIM_CONFIG_NLAMBDA];
 	float lambda[DIM_CONFIG_NLAMBDA];
-	//static float lambda[DMPC_INVERTER_CONFIG_NLAMBDA] = {0};
+	//static float lambda[DIM_CONFIG_NLAMBDA] = {0};
 
 	/* Optimal control increment */
 	//float DU;
@@ -147,7 +147,8 @@ static void dmpcInverterHildOpt(float *du, uint32_t* iters){
 	sumv(DIM_gam, (float *)auxm1, DIM_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	n_iter = qpHild((float *)DIM_Hj, Kj, 20000, lambda, DIM_CONFIG_NLAMBDA, (float)1e-6);
+	n_iter = qpHild((float *)DIM_Hj, Kj, 1000, lambda, DIM_CONFIG_NLAMBDA, (float)0.00005e-3);
+	//n_iter = qpHildFixedIter((float *)DIM_Hj, Kj, 5, lambda, DIM_CONFIG_NLAMBDA);
 	//n_iter = qpHild4((float *)Hj, Kj, 15, lambda, (float)1e-6);
 	//qpHild4FixedIter((float *)Hj, Kj, 8, lambda);
 	//n_iter = 15;
