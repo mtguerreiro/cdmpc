@@ -76,6 +76,48 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 	return n;
 }
 //-----------------------------------------------------------------------------
+uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize){
+    
+	float res;
+	float *h;
+	float *k;
+
+	uint32_t n, i, j;
+
+	for(i = 0; i < lambdaSize; i++){
+		lambda[i] = 0;
+	}
+
+	n = 0;
+	k = K;
+	while( n < nIter ){
+
+		h = H;
+
+		/* One iteration through the lambda vector */
+		for(i = 0; i < lambdaSize; i++){
+
+			lambda[i] = 0;
+			for(j = 0; j < i; j++){
+				lambda[i] += h[j] * lambda[j];
+			}
+
+			for(j = i + 1; j < lambdaSize; j++){
+				lambda[i] += h[j] * lambda[j];
+			}
+
+			lambda[i] = h[i] * (k[i] + lambda[i]);
+			if( lambda[i] < 0 ) lambda[i] = 0;
+
+			h = h + lambdaSize;
+		}
+
+		n++;
+	}
+
+	return n;
+}
+//-----------------------------------------------------------------------------
 uint32_t qpHild4(float *H, float *K, uint32_t nIter, float* lambda, float tol){
 
     uint32_t stopCond;

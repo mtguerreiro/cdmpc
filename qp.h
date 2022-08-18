@@ -41,6 +41,23 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
  * For the H matrix, we consider that the diagonal elements are already
  * inverted and with the sign flipped.
  *
+ * The algorithm runs for a fixed number of iterations.
+ *
+ * @param H Pointer to H matrix.
+ * @param K Pointer to K matrix.
+ * @param nIter Number of iterations.
+ * @param lambda Buffer to hold the solution.
+ * @param lambdaSize Size of the lambda vector.
+ * @return Number of iterations required to find solution.
+ */
+uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize);
+//-----------------------------------------------------------------------------
+/**
+ * @brief Hildreth's quadratic programming algorithm.
+ *
+ * For the H matrix, we consider that the diagonal elements are already
+ * inverted and with the sign flipped.
+ *
  * This function considers that there are only 4 variables to optimize.
  *
  * @param H Pointer to H matrix.
