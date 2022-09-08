@@ -45,17 +45,13 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	float auxm2[DMPC_CONFIG_NC_x_NU];
 
     /* Assembles augmented state vector */
-    /*
     for(i = 0; i < DMPC_CONFIG_NXM; i++){
         xa[i] = x[i] - x_1[i];
     }
-    for(i = DMPC_CONFIG_NXM; i < DMPC_CONFIG_NXA; i++){
-        xa[i] = x[i - DMPC_CONFIG_NXM];
+    for(i = 0; i < (DMPC_CONFIG_NXA - DMPC_CONFIG_NXM); i++){
+        xa[DMPC_CONFIG_NXM + i] = x[DMPC_CONFIG_Y_IDX[i]];
     }
-    */
-    xa[0] = x[0] - x_1[0];
-    xa[1] = x[1] - x_1[1];
-    xa[2] = x[1];
+    
 	/*
 	 * Computes Fj matrix. This matrix is given by:
 	 * Fj = Fj_1 * r + Fj_2 * xa,

@@ -78,7 +78,6 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 //-----------------------------------------------------------------------------
 uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lambdaSize){
     
-	float res;
 	float *h;
 	float *k;
 

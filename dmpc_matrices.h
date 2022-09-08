@@ -32,6 +32,9 @@
 #define DMPC_CONFIG_NU			1
 #define DMPC_CONFIG_NY			1
 
+/* Number of external disturbances */
+#define DMPC_CONFIG_ND			1
+
 /* Size of control vector */
 #define DMPC_CONFIG_NC_x_NU		DMPC_CONFIG_NC * DMPC_CONFIG_NU
 
@@ -46,6 +49,9 @@ uint32_t DMPC_CONFIG_U_LIM_IDX[1] = {0};
 float DMPC_CONFIG_XM_MIN[1] = {-12.0};
 float DMPC_CONFIG_XM_MAX[1] = {12.0};
 uint32_t DMPC_CONFIG_XM_LIM_IDX[1] = {0};
+
+/* Indexes of outputs */
+uint32_t DMPC_CONFIG_Y_IDX[1] = {1};
 
 /* A and B matrices for prediction */
 float DMPC_M_A[2][2] = {{ 0.98622461,-0.41775318},
