@@ -10,6 +10,7 @@
 //=============================================================================
 #include "dmpc.h"
 #include "dmpc_matrices.h"
+#include "dmpc_defs.h"
 
 /* Hildreth's QP */
 #include "mvops.h"
@@ -105,6 +106,15 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	return 0;
 }
 //-----------------------------------------------------------------------------
+void dmpcDelayComp(float *x_1, float *x, float *u){
+
+    float aux1[DMPC_CONFIG_NXM], aux2[DMPC_CONFIG_NXM];
+
+    mulmv((float *)DMPC_M_A, DMPC_CONFIG_NXM, x, DMPC_CONFIG_NXM, aux1);
+    mulmv((float *)DMPC_M_B, DMPC_CONFIG_NXM, u, DMPC_CONFIG_NU+DMPC_CONFIG_ND, aux2);
+    sumv(aux1, aux2, DMPC_CONFIG_NXM, x_1);
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 //=============================================================================
@@ -128,11 +138,11 @@ static uint32_t dmpcHildOpt(float *du){
 	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	niter = qpHild((float *)DMPC_M_Hj, Kj, 1000, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-6);
+	//niter = qpHild((float *)DMPC_M_Hj, Kj, 10000, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-6);
 	//n_iter = qpHildFixedIter((float *)DIM_Hj, Kj, 5, lambda, DIM_CONFIG_NLAMBDA);
 	//n_iter = qpHild4((float *)Hj, Kj, 15, lambda, (float)1e-6);
-	//qpHild4FixedIter((float *)Hj, Kj, 8, lambda);
-	//n_iter = 15;
+	qpHild4FixedIter((float *)DMPC_M_Hj, Kj, 12, lambda);
+	niter = 12;
 
 	/* Optimal control increment */
 	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_NC_x_NU, du);
