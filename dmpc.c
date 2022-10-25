@@ -28,10 +28,6 @@ static uint32_t dmpcHildOpt(float *du);
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-void dmpcInitialize(void){
-
-}
-//-----------------------------------------------------------------------------
 uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du){
 
 	uint32_t i, j, k, w;
@@ -61,7 +57,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	 * Fj_1 = -Phi.T * R_s_bar,
 	 * Fj_2 =  Phi.T * F
 	 */
-	mulmv((float *)DMPC_M_Fj_1, DMPC_CONFIG_NC_x_NU, r, DMPC_CONFIG_NC, auxm1);
+	mulmv((float *)DMPC_M_Fj_1, DMPC_CONFIG_NC_x_NU, r, DMPC_CONFIG_NY, auxm1);
 	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_NC_x_NU, xa, DMPC_CONFIG_NXA, auxm2);
 	sumv(auxm1, auxm2, DMPC_CONFIG_NC_x_NU, DMPC_M_Fj);
     
