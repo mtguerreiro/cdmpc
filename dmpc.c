@@ -12,16 +12,32 @@
 #include "dmpc_matrices.h"
 #include "dmpc_defs.h"
 
-/* Hildreth's QP */
 #include "mvops.h"
-#include "qp.h"
 
+#define DMPC_CONFIG_SOLVER_OSQP
+
+/* Hildreth's QP */
+#ifdef DMPC_CONFIG_SOLVER_HILD
+#include "qp.h"
+#endif
+
+/* OSQP */
+#ifdef DMPC_CONFIG_SOLVER_OSQP
+#include "osqp/workspace.h"
+#include "osqp/osqp.h"
+#endif
 //=============================================================================
 
 //=============================================================================
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
+#ifdef DMPC_CONFIG_SOLVER_HILD
 static uint32_t dmpcHildOpt(float *du);
+#endif
+
+#ifdef DMPC_CONFIG_SOLVER_OSQP
+static uint32_t dmpcOSQP(float *du);
+#endif
 //=============================================================================
 
 //=============================================================================
@@ -60,7 +76,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	mulmv((float *)DMPC_M_Fj_1, DMPC_CONFIG_NC_x_NU, r, DMPC_CONFIG_NY, auxm1);
 	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_NC_x_NU, xa, DMPC_CONFIG_NXA, auxm2);
 	sumv(auxm1, auxm2, DMPC_CONFIG_NC_x_NU, DMPC_M_Fj);
-    
+
+#ifdef DMPC_CONFIG_SOLVER_HILD
 	/*
 	 * Computes the gam vector (or y vector). This vector holds the control
 	 * and state inequalities.
@@ -98,6 +115,41 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	iters = dmpcHildOpt(du);
     if( niters != 0 ) *niters = iters;
+#endif
+
+#ifdef DMPC_CONFIG_SOLVER_OSQP
+	/*
+	 * Computes the gam vector (or y vector). This vector holds the control
+	 * and state inequalities.
+	 */
+
+	/* We start by assembling the control inequalities */
+	j = 0;
+	for(i = 0; i < DMPC_CONFIG_NR; i++){
+		for(k = 0; k < DMPC_CONFIG_NU; k++){
+			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
+			udata[j] = DMPC_CONFIG_U_MAX[k] - u_1[k];
+			j++;
+		}
+	}
+
+	/* Now, the state inequalities */
+#if ( DMPC_CONFIG_NXM_CTR != 0 )
+    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NR * DMPC_CONFIG_NXM_CTR, xa, DMPC_CONFIG_NXM, auxm1);
+    w = 0;
+    for(i = 0; i < DMPC_CONFIG_NR; i++){
+        for( k = 0; k < DMPC_CONFIG_NXM_CTR; k++){
+            ldata[j] = DMPC_CONFIG_XM_MIN[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
+            udata[j] = DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
+            j++;
+            w++;
+        }
+    }
+#endif
+
+	iters = dmpcOSQP(du);
+    if( niters != 0 ) *niters = iters;
+#endif
 
 	return 0;
 }
@@ -117,6 +169,7 @@ void dmpcDelayComp(float *x_1, float *x, float *u){
 /*---------------------------- Static functions -----------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
+#ifdef DMPC_CONFIG_SOLVER_HILD
 static uint32_t dmpcHildOpt(float *du){
 
 	uint32_t niter;
@@ -134,11 +187,11 @@ static uint32_t dmpcHildOpt(float *du){
 	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	//niter = qpHild((float *)DMPC_M_Hj, Kj, 10000, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-6);
+	niter = qpHild((float *)DMPC_M_Hj, Kj, 200, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-5);
 	//n_iter = qpHildFixedIter((float *)DIM_Hj, Kj, 5, lambda, DIM_CONFIG_NLAMBDA);
 	//n_iter = qpHild4((float *)Hj, Kj, 15, lambda, (float)1e-6);
-	qpHild4FixedIter((float *)DMPC_M_Hj, Kj, 12, lambda);
-	niter = 12;
+	//qpHild4FixedIter((float *)DMPC_M_Hj, Kj, 12, lambda);
+	//niter = 12;
 
 	/* Optimal control increment */
 	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_NC_x_NU, du);
@@ -147,5 +200,21 @@ static uint32_t dmpcHildOpt(float *du){
     
     return niter;
 }
+#endif
+//-----------------------------------------------------------------------------
+#ifdef DMPC_CONFIG_SOLVER_OSQP
+static uint32_t dmpcOSQP(float *du){
+
+	osqp_update_bounds(&workspace, ldata, udata);
+	osqp_update_lin_cost(&workspace, DMPC_M_Fj);
+
+	osqp_solve(&workspace);
+
+	du[0] = workspace.solution->x[0];
+	du[1] = workspace.solution->x[1];
+
+	return workspace.info->iter;
+}
+#endif
 //-----------------------------------------------------------------------------
 //=============================================================================
