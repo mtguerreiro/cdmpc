@@ -24,6 +24,7 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 	float res;
 	float *h;
 	float *k;
+    float acc;
 
 	uint32_t n, i, j;
 
@@ -42,16 +43,13 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 		for(i = 0; i < lambdaSize; i++){
 
 			res = lambda[i];
+            acc = 0;
 			lambda[i] = 0;
-			for(j = 0; j < i; j++){
-				lambda[i] += h[j] * lambda[j];
+			for(j = 0; j < lambdaSize; j++){
+				acc += h[j] * lambda[j];
 			}
 
-			for(j = i + 1; j < lambdaSize; j++){
-				lambda[i] += h[j] * lambda[j];
-			}
-
-			lambda[i] = h[i] * (k[i] + lambda[i]);
+			lambda[i] = h[i] * (k[i] + acc);
 			if( lambda[i] < 0 ) lambda[i] = 0;
 
 			if( stopCond == 0 ){
@@ -80,6 +78,7 @@ uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint
     
 	float *h;
 	float *k;
+    float acc;
 
 	uint32_t n, i, j;
 
@@ -97,15 +96,12 @@ uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint
 		for(i = 0; i < lambdaSize; i++){
 
 			lambda[i] = 0;
-			for(j = 0; j < i; j++){
-				lambda[i] += h[j] * lambda[j];
+            acc = 0;
+			for(j = 0; j < lambdaSize; j++){
+				acc += h[j] * lambda[j];
 			}
 
-			for(j = i + 1; j < lambdaSize; j++){
-				lambda[i] += h[j] * lambda[j];
-			}
-
-			lambda[i] = h[i] * (k[i] + lambda[i]);
+			lambda[i] = h[i] * (k[i] + acc);
 			if( lambda[i] < 0 ) lambda[i] = 0;
 
 			h = h + lambdaSize;
