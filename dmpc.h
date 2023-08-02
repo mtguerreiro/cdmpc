@@ -19,7 +19,8 @@
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du);
+//uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du);
+uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du, uint32_t *t1, uint32_t *t2, uint32_t *t3);
 //-----------------------------------------------------------------------------
 void dmpcDelayComp(float *x_1, float *x, float *u);
 //-----------------------------------------------------------------------------
