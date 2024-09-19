@@ -11,8 +11,40 @@
 /*-------------------------------- Includes ---------------------------------*/
 //=============================================================================
 #include "qp.h"
+#include "stdlib.h"
+
+// --------- For FPGA computation -----------
+#include "xqphild.h"
+#include "xaxidma.h"
+#include "xparameters.h"
+// ------------------------------------------
 
 //=============================================================================
+/*-------------------------------- Definitions ------------------------------*/
+//=============================================================================
+#define DMA_DEV_ID			XPAR_AXIDMA_0_DEVICE_ID
+
+#define DDR_BASE_ADDR		XPAR_PS7_DDR_0_S_AXI_BASEADDR
+
+#define MEM_BASE_ADDR		(DDR_BASE_ADDR + 0x04100000)
+
+#define TX_BUFFER_BASE		(MEM_BASE_ADDR)
+#define RX_BUFFER_BASE		(MEM_BASE_ADDR + 0x800)
+
+#define MPC_LAMBDA_SIZE		32
+#define NUM_BYTES_PKT		8
+#define NUM_BYTES_STREAM	(MPC_LAMBDA_SIZE * NUM_BYTES_PKT)
+
+#define FLOAT_TO_FIXED		(float)((uint64_t)1 << 32)
+#define FIXED_TO_FLOAT		(1.0f / FLOAT_TO_FIXED)
+
+//=============================================================================
+/*-------------------------------- Globals ----------------------------------*/
+//=============================================================================
+static XAxiDma AxiDma;
+static XAxiDma_Config *AxiDmaPtr;
+static XQphild HlsQphild;
+static XQphild_Config *QphildPtr;
 
 //=============================================================================
 /*-------------------------------- Functions --------------------------------*/
@@ -24,7 +56,6 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 	float res;
 	float *h;
 	float *k;
-    float acc;
 
 	uint32_t n, i, j;
 
@@ -43,13 +74,16 @@ uint32_t qpHild(float *H, float *K, uint32_t nIter, float* lambda, uint32_t lamb
 		for(i = 0; i < lambdaSize; i++){
 
 			res = lambda[i];
-            acc = 0;
 			lambda[i] = 0;
-			for(j = 0; j < lambdaSize; j++){
-				acc += h[j] * lambda[j];
+			for(j = 0; j < i; j++){
+				lambda[i] += h[j] * lambda[j];
 			}
 
-			lambda[i] = h[i] * (k[i] + acc);
+			for(j = i + 1; j < lambdaSize; j++){
+				lambda[i] += h[j] * lambda[j];
+			}
+
+			lambda[i] = h[i] * (k[i] + lambda[i]);
 			if( lambda[i] < 0 ) lambda[i] = 0;
 
 			if( stopCond == 0 ){
@@ -78,7 +112,6 @@ uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint
     
 	float *h;
 	float *k;
-    float acc;
 
 	uint32_t n, i, j;
 
@@ -96,12 +129,15 @@ uint32_t qpHildFixedIter(float *H, float *K, uint32_t nIter, float* lambda, uint
 		for(i = 0; i < lambdaSize; i++){
 
 			lambda[i] = 0;
-            acc = 0;
-			for(j = 0; j < lambdaSize; j++){
-				acc += h[j] * lambda[j];
+			for(j = 0; j < i; j++){
+				lambda[i] += h[j] * lambda[j];
 			}
 
-			lambda[i] = h[i] * (k[i] + acc);
+			for(j = i + 1; j < lambdaSize; j++){
+				lambda[i] += h[j] * lambda[j];
+			}
+
+			lambda[i] = h[i] * k[i] + lambda[i];
 			if( lambda[i] < 0 ) lambda[i] = 0;
 
 			h = h + lambdaSize;
@@ -265,6 +301,82 @@ void qpHild8FixedIter(float *H, float *K, uint32_t nIter, float* lambda){
 
         n++;
     }
+}
+//-----------------------------------------------------------------------------
+uint32_t qpHildInitFPGA( void ){
+	QphildPtr = XQphild_LookupConfig(XPAR_XQPHILD_0_DEVICE_ID);
+	if (!QphildPtr) {
+		xil_printf("ERROR: Lookup of accelerator configuration failed.\n\r");
+		return XST_FAILURE;
+	}
+
+	int status = XQphild_CfgInitialize(&HlsQphild, QphildPtr);
+	if (status != XST_SUCCESS) {
+		xil_printf("ERROR: Could not initialize accelerator.\n\r");
+		return XST_FAILURE;
+	}
+
+	AxiDmaPtr = XAxiDma_LookupConfig(XPAR_AXIDMA_0_DEVICE_ID);
+	if (!AxiDmaPtr) {
+		xil_printf("No config found for %d\r\n", XPAR_AXIDMA_0_DEVICE_ID);
+		return XST_FAILURE;
+	}
+
+	status = XAxiDma_CfgInitialize(&AxiDma, AxiDmaPtr);
+	if (status != XST_SUCCESS) {
+		xil_printf("Initialization failed %d\r\n", status);
+		return XST_FAILURE;
+	}
+
+	if(XAxiDma_HasSg(&AxiDma)){
+		xil_printf("Device configured as SG mode \r\n");
+		return XST_FAILURE;
+	}
+
+	XAxiDma_IntrDisable(&AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DEVICE_TO_DMA);
+	XAxiDma_IntrDisable(&AxiDma, XAXIDMA_IRQ_ALL_MASK, XAXIDMA_DMA_TO_DEVICE);
+
+	return XST_SUCCESS;
+}
+//-----------------------------------------------------------------------------
+uint32_t qpHildFixedIterFPGA(float *K, float* lambda){
+
+	uint32_t nIter;
+	unsigned int i;
+
+	int64_t* const TxBufferPtr = (int64_t*) TX_BUFFER_BASE;
+	int64_t* const RxBufferPtr = (int64_t*) RX_BUFFER_BASE;
+
+	for(i = 0; i < MPC_LAMBDA_SIZE; i++){
+		TxBufferPtr[i] = (int64_t)( K[i] * FLOAT_TO_FIXED );
+	}
+
+	Xil_DCacheFlushRange((UINTPTR)TxBufferPtr, NUM_BYTES_STREAM);
+
+	XAxiDma_Reset(&AxiDma);
+	while( !XAxiDma_ResetIsDone(&AxiDma) );
+
+	XQphild_Start( &HlsQphild );
+
+	XAxiDma_SimpleTransfer(&AxiDma,(UINTPTR) TxBufferPtr,
+			NUM_BYTES_STREAM, XAXIDMA_DMA_TO_DEVICE);
+
+	while( XAxiDma_Busy(&AxiDma, XAXIDMA_DMA_TO_DEVICE) == 1 );
+
+	XAxiDma_SimpleTransfer(&AxiDma,(UINTPTR) RxBufferPtr,
+			NUM_BYTES_STREAM, XAXIDMA_DEVICE_TO_DMA);
+
+	//while( XQphild_IsDone( &HlsQphild ) == 0 );
+	while( XAxiDma_Busy(&AxiDma, XAXIDMA_DEVICE_TO_DMA) == 1 );
+
+	Xil_DCacheFlushRange((UINTPTR)RxBufferPtr, NUM_BYTES_STREAM);
+
+	for (int i = 0; i < MPC_LAMBDA_SIZE; i++) {
+		lambda[i] = RxBufferPtr[i] * FIXED_TO_FLOAT;
+	}
+
+	nIter = XQphild_Get_nIter(&HlsQphild);
+	return nIter;
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

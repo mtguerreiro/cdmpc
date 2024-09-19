@@ -8,8 +8,6 @@
  * diagonal elements, so that Hildreth's algorithm does not require any 
  * divisions.
  *
- *  Originally created on: 22.04.2022
- *      Author: mguerreiro
  */
 
 #ifndef DMPC_MATRICES_H_
@@ -18,18 +16,25 @@
 #include "stdint.h"
 
 /* Input constraints */
-extern float DMPC_CONFIG_U_MIN[1];
-extern float DMPC_CONFIG_U_MAX[1];
-extern uint32_t DMPC_CONFIG_U_LIM_IDX[1];
+extern float DMPC_CONFIG_U_MIN[2];
+extern float DMPC_CONFIG_U_MAX[2];
+extern uint32_t DMPC_CONFIG_U_LIM_IDX[2];
 
 /* State constraints */
- 
-/* Indexes of outputs */
-extern uint32_t DMPC_CONFIG_Y_IDX[1];
+extern float DMPC_CONFIG_XM_MIN[2];
+extern float DMPC_CONFIG_XM_MAX[2];
+extern uint32_t DMPC_CONFIG_XM_LIM_IDX[2];
 
-/* A and B matrices for prediction */
-extern float DMPC_M_A[1];
-extern float DMPC_M_B[2];
+/* Index of ouputs */
+extern uint32_t DMPC_CONFIG_Y_IDX[2];
+
+/*
+ * A and B matrices for prediction.
+ * A corresponds to model matrix Am.
+ * B corresponds to model matrix Bm concatenated with Bd, if Bd exists.
+*/
+extern float DMPC_M_A[6][6];
+extern float DMPC_M_B[6][4];
 
 /*
  * Matrices for QP solvers 
@@ -46,28 +51,18 @@ extern float DMPC_M_B[2];
  * Note that the Fj and gam matrices are usually updated online, while Ej
  * and M are static.
  */
-extern float DMPC_M_Ej[10][10];
+extern float DMPC_M_Ej[8][8];
+extern float DMPC_M_Fj[8];
+extern float DMPC_M_M[32][8];
+extern float DMPC_M_gam[32];
 
-extern float DMPC_M_Fj[10];
-
-extern float DMPC_M_M[2][10];
-
-extern float DMPC_M_gam[2];
-
- /* Matrices for Hildreth's QP procedure */
-extern float DMPC_M_Fj_1[10];
-
-extern float DMPC_M_Fj_2[10][2];
-
-extern float DMPC_M_Fx[1];
-
-extern float DMPC_M_Kj_1[2][10];
-
-extern float DMPC_M_Hj[2][2];
-
-extern float DMPC_M_DU_1[10];
-
-extern float DMPC_M_DU_2[2];
-
+/* Matrices for Hildreth's QP procedure */
+extern float DMPC_M_Fj_1[8][2];
+extern float DMPC_M_Fj_2[8][8];
+extern float DMPC_M_Fx[8][6];
+extern float DMPC_M_Kj_1[32][8];
+extern float DMPC_M_Hj[32][32];
+extern float DMPC_M_DU_1[2][8];
+extern float DMPC_M_DU_2[2][32];
 
 #endif /* DMPC_MATRICES_H_ */

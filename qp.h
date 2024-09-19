@@ -103,6 +103,25 @@ void qpHild4FixedIter(float *H, float *K, uint32_t nIter, float* lambda);
  */
 void qpHild8FixedIter(float *H, float *K, uint32_t nIter, float* lambda);
 //-----------------------------------------------------------------------------
+/**
+ * @brief Initializes instance and configuration pointers for the IP core running the Hildreth algorithm and the AXI DMA.
+ */
+uint32_t qpHildInitFPGA(void);
+//-----------------------------------------------------------------------------
+/**
+ * @brief Hildreth's quadratic programming algorithm.
+ *
+ * Runs Hildreth's QP procedure for the configured number of iterations on the HLS generated IP core.
+ *
+ * The H matrix is initialized on the FPGA.
+ *
+ * This function considers the configured number of variables in the IP core to optimize.
+ *
+ * @param K Pointer to K matrix.
+ * @param lambda Buffer to hold the solution.
+ */
+uint32_t qpHildFixedIterFPGA(float *K, float* lambda);
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 #endif /* QP_H_ */

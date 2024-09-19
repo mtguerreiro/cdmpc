@@ -14,7 +14,7 @@
 
 #include "mvops.h"
 
-#define DMPC_CONFIG_SOLVER_OSQP
+#define DMPC_CONFIG_SOLVER_HILD
 
 /* Hildreth's QP */
 #ifdef DMPC_CONFIG_SOLVER_HILD
@@ -187,11 +187,12 @@ static uint32_t dmpcHildOpt(float *du){
 	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	niter = qpHild((float *)DMPC_M_Hj, Kj, 200, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-5);
-	//n_iter = qpHildFixedIter((float *)DIM_Hj, Kj, 5, lambda, DIM_CONFIG_NLAMBDA);
+	//niter = qpHild((float *)DMPC_M_Hj, Kj, 200, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-5);
+	//niter = qpHildFixedIter((float *)DMPC_M_Hj, Kj, 10, lambda, DMPC_CONFIG_NLAMBDA);
 	//n_iter = qpHild4((float *)Hj, Kj, 15, lambda, (float)1e-6);
 	//qpHild4FixedIter((float *)DMPC_M_Hj, Kj, 12, lambda);
 	//niter = 12;
+	niter = qpHildFixedIterFPGA(Kj, lambda);
 
 	/* Optimal control increment */
 	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_NC_x_NU, du);
