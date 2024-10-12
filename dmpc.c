@@ -127,6 +127,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
+#if ( DMPC_CONFIG_NU_CTR != 0 )
 	for(i = 0; i < DMPC_CONFIG_NR; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
@@ -134,6 +135,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			j++;
 		}
 	}
+#endif
 
 	/* Now, the state inequalities */
 #if ( DMPC_CONFIG_NXM_CTR != 0 )
@@ -204,13 +206,16 @@ static uint32_t dmpcHildOpt(float *du){
 #ifdef DMPC_CONFIG_SOLVER_OSQP
 static uint32_t dmpcOSQP(float *du){
 
+    uint32_t i;
+
 	osqp_update_bounds(&workspace, ldata, udata);
 	osqp_update_lin_cost(&workspace, DMPC_M_Fj);
 
 	osqp_solve(&workspace);
-
-	du[0] = workspace.solution->x[0];
-	du[1] = workspace.solution->x[1];
+    
+    for(i = 0; i < DMPC_CONFIG_NU; i++){
+	    du[i] = workspace.solution->x[0];    
+    }
 
 	return workspace.info->iter;
 }
