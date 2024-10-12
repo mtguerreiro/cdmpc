@@ -14,7 +14,7 @@
 
 #include "mvops.h"
 
-#define DMPC_CONFIG_SOLVER_OSQP
+#define DMPC_CONFIG_SOLVER_HILD
 
 /* Hildreth's QP */
 #ifdef DMPC_CONFIG_SOLVER_HILD
@@ -85,6 +85,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
+#if ( DMPC_CONFIG_NU_CTR != 0 )
 	for(i = 0; i < DMPC_CONFIG_NR; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
@@ -95,6 +96,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			DMPC_M_gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
 		}
 	}
+#endif
 
 	/* Now, the state inequalities */
 #if ( DMPC_CONFIG_NXM_CTR != 0 )
@@ -187,11 +189,8 @@ static uint32_t dmpcHildOpt(float *du){
 	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-	niter = qpHild((float *)DMPC_M_Hj, Kj, 200, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-5);
-	//n_iter = qpHildFixedIter((float *)DIM_Hj, Kj, 5, lambda, DIM_CONFIG_NLAMBDA);
-	//n_iter = qpHild4((float *)Hj, Kj, 15, lambda, (float)1e-6);
-	//qpHild4FixedIter((float *)DMPC_M_Hj, Kj, 12, lambda);
-	//niter = 12;
+	niter = qpHild((float *)DMPC_M_Hj, Kj, 200, lambda, DMPC_CONFIG_NLAMBDA, (float)1e-9);
+	//niter = qpHildFixedIter((float *)DMPC_M_Hj, Kj, 30, lambda, DMPC_CONFIG_NLAMBDA);
 
 	/* Optimal control increment */
 	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_NC_x_NU, du);
