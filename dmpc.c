@@ -48,14 +48,42 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	uint32_t i, j, k, w;
     
-    uint32_t iters;
+    uint32_t iters = 0;
 
-	/* Augmented states */
-	float xa[DMPC_CONFIG_NXA];
+#if ( ( DMPC_CONFIG_NU_CTR == 0 ) && (DMPC_CONFIG_NXM_CTR == 0) )
+
+	/* Auxiliary variables for intermediate computations */
+	float auxm1[DMPC_CONFIG_NU];
+	float auxm2[DMPC_CONFIG_NU];
+
+	/* Delta states */
+	float dx[DMPC_CONFIG_NXM];
+
+	/* Error */
+	float e[DMPC_CONFIG_NR];
+
+    /* Assembles -dx state vector */
+    for(i = 0; i < DMPC_CONFIG_NXM; i++){
+        dx[i] = -(x[i] - x_1[i]);
+    }
+
+    /* Assembles -error vector */
+    for(i = 0; i < DMPC_CONFIG_NY; i++){
+        e[i] = -( x[DMPC_CONFIG_Y_IDX[i]] - r[i] );
+    }
+
+    mulmv((float *)DMPC_Kx, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
+    mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
+    sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
+
+#else
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_NC_x_NU];
 	float auxm2[DMPC_CONFIG_NC_x_NU];
+
+	/* Augmented states */
+	float xa[DMPC_CONFIG_NXA];
 
     /* Assembles augmented state vector */
     for(i = 0; i < DMPC_CONFIG_NXM; i++){
@@ -64,7 +92,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
     for(i = 0; i < (DMPC_CONFIG_NXA - DMPC_CONFIG_NXM); i++){
         xa[DMPC_CONFIG_NXM + i] = x[DMPC_CONFIG_Y_IDX[i]];
     }
-    
+
 	/*
 	 * Computes Fj matrix. This matrix is given by:
 	 * Fj = Fj_1 * r + Fj_2 * xa,
@@ -116,7 +144,6 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #endif
 
 	iters = dmpcHildOpt(du);
-    if( niters != 0 ) *niters = iters;
 #endif
 
 #ifdef DMPC_CONFIG_SOLVER_OSQP
@@ -152,8 +179,11 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #endif
 
 	iters = dmpcOSQP(du);
-    if( niters != 0 ) *niters = iters;
 #endif
+
+#endif // #if ( ( DMPC_CONFIG_NU_CTR == 0 ) && (DMPC_CONFIG_NXM_CTR == 0) )
+    
+    if( niters != 0 ) *niters = iters;
 
 	return 0;
 }
@@ -172,6 +202,7 @@ void dmpcDelayComp(float *x_1, float *x, float *u){
 //=============================================================================
 /*---------------------------- Static functions -----------------------------*/
 //=============================================================================
+#if ( ( DMPC_CONFIG_NU_CTR != 0 ) || (DMPC_CONFIG_NXM_CTR != 0) )
 //-----------------------------------------------------------------------------
 #ifdef DMPC_CONFIG_SOLVER_HILD
 static uint32_t dmpcHildOpt(float *du){
@@ -221,4 +252,5 @@ static uint32_t dmpcOSQP(float *du){
 }
 #endif
 //-----------------------------------------------------------------------------
+#endif #if ( ( DMPC_CONFIG_NU_CTR != 0 ) || (DMPC_CONFIG_NXM_CTR != 0) )
 //=============================================================================
