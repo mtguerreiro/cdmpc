@@ -60,7 +60,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	float dx[DMPC_CONFIG_NXM];
 
 	/* Error */
-	float e[DMPC_CONFIG_NR];
+	float e[DMPC_CONFIG_NY];
 
     /* Assembles -dx state vector */
     for(i = 0; i < DMPC_CONFIG_NXM; i++){
