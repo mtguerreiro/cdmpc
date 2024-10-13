@@ -252,5 +252,5 @@ static uint32_t dmpcOSQP(float *du){
 }
 #endif
 //-----------------------------------------------------------------------------
-#endif #if ( ( DMPC_CONFIG_NU_CTR != 0 ) || (DMPC_CONFIG_NXM_CTR != 0) )
+#endif // #if ( ( DMPC_CONFIG_NU_CTR != 0 ) || (DMPC_CONFIG_NXM_CTR != 0) )
 //=============================================================================
