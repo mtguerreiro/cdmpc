@@ -245,7 +245,7 @@ static uint32_t dmpcOSQP(float *du){
 	osqp_solve(&workspace);
     
     for(i = 0; i < DMPC_CONFIG_NU; i++){
-	    du[i] = workspace.solution->x[0];    
+	    du[i] = workspace.solution->x[i];    
     }
 
 	return workspace.info->iter;
