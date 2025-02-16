@@ -40,4 +40,10 @@
 /* State constraints */
 #define DMPC_CONFIG_NXM_CTR		0
 
+/* Solver settings */
+#define DMPC_CONFIG_HILD_TOL           1e-06
+#define DMPC_CONFIG_HILD_N_ITER        50
+#define DMPC_CONFIG_HILD_FIXED_ITER    0
+#define DMPC_CONFIG_SOLVER_HILD
+
 #endif /* DMPC_DEFS_H_ */
