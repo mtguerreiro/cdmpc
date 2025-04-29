@@ -44,6 +44,9 @@
 #define DMPC_CONFIG_HILD_TOL           1e-06
 #define DMPC_CONFIG_HILD_N_ITER        50
 #define DMPC_CONFIG_HILD_FIXED_ITER    0
+
+#if !defined(DMPC_CONFIG_SOLVER_HILD) && !defined(DMPC_CONFIG_SOLVER_OSQP)
 #define DMPC_CONFIG_SOLVER_HILD
+#endif
 
 #endif /* DMPC_DEFS_H_ */
