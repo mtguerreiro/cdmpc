@@ -20,8 +20,8 @@
 
 /* Prediction, control and constraint horizon */
 #define DMPC_CONFIG_NP			10
-#define DMPC_CONFIG_NC			10
-#define DMPC_CONFIG_NR			1
+#define DMPC_CONFIG_NCTL		10
+#define DMPC_CONFIG_NCNT		1
 #define DMPC_CONFIG_NLAMBDA		2
 
 /* Number of inputs and outputs */
@@ -32,13 +32,13 @@
 #define DMPC_CONFIG_ND			1
 
 /* Size of control vector */
-#define DMPC_CONFIG_NC_x_NU		DMPC_CONFIG_NC * DMPC_CONFIG_NU
+#define DMPC_CONFIG_U_SIZE		DMPC_CONFIG_NCNT * DMPC_CONFIG_NU
 
 /* Input constraints */
-#define DMPC_CONFIG_NU_CTR		1
+#define DMPC_CONFIG_NU_CNT		1
 
 /* State constraints */
-#define DMPC_CONFIG_NXM_CTR		0
+#define DMPC_CONFIG_NXM_CNT		0
 
 /* Solver settings */
 #define DMPC_CONFIG_HILD_TOL           1e-06

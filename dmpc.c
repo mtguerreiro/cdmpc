@@ -48,7 +48,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
     
     uint32_t iters = 0;
 
-#if ( ( DMPC_CONFIG_NU_CTR == 0 ) && (DMPC_CONFIG_NXM_CTR == 0) )
+#if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_NU];
@@ -77,8 +77,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #else
 
 	/* Auxiliary variables for intermediate computations */
-	float auxm1[DMPC_CONFIG_NC_x_NU];
-	float auxm2[DMPC_CONFIG_NC_x_NU];
+	float auxm1[DMPC_CONFIG_U_SIZE];
+	float auxm2[DMPC_CONFIG_U_SIZE];
 
 	/* Augmented states */
 	float xa[DMPC_CONFIG_NXA];
@@ -99,9 +99,9 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	 * Fj_1 = -Phi.T * R_s_bar,
 	 * Fj_2 =  Phi.T * F
 	 */
-	mulmv((float *)DMPC_M_Fj_1, DMPC_CONFIG_NC_x_NU, r, DMPC_CONFIG_NY, auxm1);
-	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_NC_x_NU, xa, DMPC_CONFIG_NXA, auxm2);
-	sumv(auxm1, auxm2, DMPC_CONFIG_NC_x_NU, DMPC_M_Fj);
+	mulmv((float *)DMPC_M_Fj_1, DMPC_CONFIG_U_SIZE, r, DMPC_CONFIG_NY, auxm1);
+	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_U_SIZE, xa, DMPC_CONFIG_NXA, auxm2);
+	sumv(auxm1, auxm2, DMPC_CONFIG_U_SIZE, DMPC_M_Fj);
 
 #ifdef DMPC_CONFIG_SOLVER_HILD
 	/*
@@ -111,13 +111,13 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-#if ( DMPC_CONFIG_NU_CTR != 0 )
-	for(i = 0; i < DMPC_CONFIG_NR; i++){
+#if ( DMPC_CONFIG_NU_CNT != 0 )
+	for(i = 0; i < DMPC_CONFIG_NCNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
 		}
 	}
-	for(i = 0; i < DMPC_CONFIG_NR; i++){
+	for(i = 0; i < DMPC_CONFIG_NCNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
 		}
@@ -125,17 +125,17 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #endif
 
 	/* Now, the state inequalities */
-#if ( DMPC_CONFIG_NXM_CTR != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NR * DMPC_CONFIG_NXM_CTR, xa, DMPC_CONFIG_NXM, auxm1);
+#if ( DMPC_CONFIG_NXM_CNT != 0 )
+    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NCNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
     w = 0;
-    for(i = 0; i < DMPC_CONFIG_NR; i++){
-        for( k = 0; k < DMPC_CONFIG_NXM_CTR; k++){
+    for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+        for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
             DMPC_M_gam[j++] = -DMPC_CONFIG_XM_MIN[k] + x[DMPC_CONFIG_XM_LIM_IDX[k]] + auxm1[w++];
         }
     }
     w = 0;
-    for(i = 0; i < DMPC_CONFIG_NR; i++){
-        for( k = 0; k < DMPC_CONFIG_NXM_CTR; k++){
+    for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+        for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
             DMPC_M_gam[j++] =  DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
         }
     }   
@@ -152,8 +152,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-#if ( DMPC_CONFIG_NU_CTR != 0 )
-	for(i = 0; i < DMPC_CONFIG_NR; i++){
+#if ( DMPC_CONFIG_NU_CNT != 0 )
+	for(i = 0; i < DMPC_CONFIG_NCNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
 			udata[j] = DMPC_CONFIG_U_MAX[k] - u_1[k];
@@ -163,11 +163,11 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #endif
 
 	/* Now, the state inequalities */
-#if ( DMPC_CONFIG_NXM_CTR != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NR * DMPC_CONFIG_NXM_CTR, xa, DMPC_CONFIG_NXM, auxm1);
+#if ( DMPC_CONFIG_NXM_CNT != 0 )
+    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NCNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
     w = 0;
-    for(i = 0; i < DMPC_CONFIG_NR; i++){
-        for( k = 0; k < DMPC_CONFIG_NXM_CTR; k++){
+    for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+        for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
             ldata[j] = DMPC_CONFIG_XM_MIN[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
             udata[j] = DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
             j++;
@@ -179,7 +179,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	iters = dmpcOSQP(du);
 #endif
 
-#endif // #if ( ( DMPC_CONFIG_NU_CTR == 0 ) && (DMPC_CONFIG_NXM_CTR == 0) )
+#endif // #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
     
     if( niters != 0 ) *niters = iters;
 
@@ -200,7 +200,7 @@ void dmpcDelayComp(float *x_1, float *x, float *u){
 //=============================================================================
 /*---------------------------- Static functions -----------------------------*/
 //=============================================================================
-#if ( ( DMPC_CONFIG_NU_CTR != 0 ) || (DMPC_CONFIG_NXM_CTR != 0) )
+#if ( ( DMPC_CONFIG_NU_CNT != 0 ) || (DMPC_CONFIG_NXM_CNT != 0) )
 //-----------------------------------------------------------------------------
 #ifdef DMPC_CONFIG_SOLVER_HILD
 static uint32_t dmpcHildOpt(float *du){
@@ -216,7 +216,7 @@ static uint32_t dmpcHildOpt(float *du){
 	//static float lambda[DIM_CONFIG_NLAMBDA] = {0};
 
 	/* Computes Kj */
-	mulmv((float *)DMPC_M_Kj_1, DMPC_CONFIG_NLAMBDA, DMPC_M_Fj, DMPC_CONFIG_NC_x_NU, (float *)auxm1);
+	mulmv((float *)DMPC_M_Kj_1, DMPC_CONFIG_NLAMBDA, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, (float *)auxm1);
 	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
@@ -227,7 +227,7 @@ static uint32_t dmpcHildOpt(float *du){
 #endif
 
 	/* Optimal control increment */
-	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_NC_x_NU, du);
+	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, du);
 	mulmv((float *)DMPC_M_DU_2, DMPC_CONFIG_NU, lambda, DMPC_CONFIG_NLAMBDA, auxm1);
 	sumv(du, auxm1, DMPC_CONFIG_NU, du);
     
@@ -253,5 +253,5 @@ static uint32_t dmpcOSQP(float *du){
 }
 #endif
 //-----------------------------------------------------------------------------
-#endif // #if ( ( DMPC_CONFIG_NU_CTR != 0 ) || (DMPC_CONFIG_NXM_CTR != 0) )
+#endif // #if ( ( DMPC_CONFIG_NU_CNT != 0 ) || (DMPC_CONFIG_NXM_CNT != 0) )
 //=============================================================================
