@@ -4,8 +4,6 @@
  *
  * This file is generated automatically and should not be modified.
  *
- *  Originally created on: 21.10.2022
- *      Author: mguerreiro
  */
 
 #ifndef DMPC_DEFS_H_
@@ -18,21 +16,20 @@
 #define DMPC_CONFIG_NXM			1
 #define DMPC_CONFIG_NXA			2
 
-/* Prediction, control and constraint horizon */
-#define DMPC_CONFIG_NP			10
-#define DMPC_CONFIG_NCTL		10
-#define DMPC_CONFIG_NCNT		1
+/* Length of prediction, control and constraint horizons */
+#define DMPC_CONFIG_L_PRED		10
+#define DMPC_CONFIG_L_CTL		10
+#define DMPC_CONFIG_L_U_CNT		1
+#define DMPC_CONFIG_L_X_CNT		1
 #define DMPC_CONFIG_NLAMBDA		2
 
-/* Number of inputs and outputs */
+/* Number of inputs, outputs, and disturbances */
 #define DMPC_CONFIG_NU			1
 #define DMPC_CONFIG_NY			1
-
-/* Number of external disturbances */
-#define DMPC_CONFIG_ND			1
+#define DMPC_CONFIG_ND			0
 
 /* Size of control vector */
-#define DMPC_CONFIG_U_SIZE		DMPC_CONFIG_NCNT * DMPC_CONFIG_NU
+#define DMPC_CONFIG_U_SIZE		(DMPC_CONFIG_L_CTL * DMPC_CONFIG_NU)
 
 /* Input constraints */
 #define DMPC_CONFIG_NU_CNT		1

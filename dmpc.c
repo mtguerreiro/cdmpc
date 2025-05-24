@@ -112,12 +112,12 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	/* We start by assembling the control inequalities */
 	j = 0;
 #if ( DMPC_CONFIG_NU_CNT != 0 )
-	for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
 		}
 	}
-	for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
 		}
@@ -126,15 +126,15 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* Now, the state inequalities */
 #if ( DMPC_CONFIG_NXM_CNT != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NCNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
+    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
     w = 0;
-    for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+    for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
         for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
             DMPC_M_gam[j++] = -DMPC_CONFIG_XM_MIN[k] + x[DMPC_CONFIG_XM_LIM_IDX[k]] + auxm1[w++];
         }
     }
     w = 0;
-    for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+    for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
         for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
             DMPC_M_gam[j++] =  DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
         }
@@ -153,7 +153,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	/* We start by assembling the control inequalities */
 	j = 0;
 #if ( DMPC_CONFIG_NU_CNT != 0 )
-	for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
 			udata[j] = DMPC_CONFIG_U_MAX[k] - u_1[k];
@@ -164,9 +164,9 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* Now, the state inequalities */
 #if ( DMPC_CONFIG_NXM_CNT != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_NCNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
+    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
     w = 0;
-    for(i = 0; i < DMPC_CONFIG_NCNT; i++){
+    for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
         for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
             ldata[j] = DMPC_CONFIG_XM_MIN[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
             udata[j] = DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
