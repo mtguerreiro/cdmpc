@@ -42,7 +42,7 @@ static uint32_t dmpcOSQP(float *du);
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du){
+uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, float *Xp, uint32_t *niters, float *du){
 
 	uint32_t i, j, k, w;
     
@@ -73,6 +73,15 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
     mulmv((float *)DMPC_Kx, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
     mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
     sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
+
+    mulmv((float *)DMPC_K_f1, DMPC_CONFIG_NU, Xp, DMPC_CONFIG_L_PAST, auxm1);
+    sumv(auxm1, du, DMPC_CONFIG_NU, du);
+
+    mulmv((float *)DMPC_K_f2, DMPC_CONFIG_NU, x, DMPC_CONFIG_NXM, auxm1);
+    sumv(auxm1, du, DMPC_CONFIG_NU, du);
+
+    mulmv((float *)DMPC_K_f2, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
+    sumv(auxm1, du, DMPC_CONFIG_NU, du);
 
 #else
 
