@@ -44,21 +44,21 @@ static uint32_t dmpcOSQP(float *du);
 //-----------------------------------------------------------------------------
 uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, float *Xp, uint32_t *niters, float *du){
 
-	uint32_t i, j, k, w;
+    uint32_t i, j, k, w;
     
     uint32_t iters = 0;
 
 #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
 
-	/* Auxiliary variables for intermediate computations */
-	float auxm1[DMPC_CONFIG_NU];
-	float auxm2[DMPC_CONFIG_NU];
+    /* Auxiliary variables for intermediate computations */
+    float auxm1[DMPC_CONFIG_NU];
+    float auxm2[DMPC_CONFIG_NU];
 
-	/* Delta states */
-	float dx[DMPC_CONFIG_NXM];
+    /* Delta states */
+    float dx[DMPC_CONFIG_NXM];
 
-	/* Error */
-	float e[DMPC_CONFIG_NY];
+    /* Error */
+    float e[DMPC_CONFIG_NY];
 
     /* Assembles -dx state vector */
     for(i = 0; i < DMPC_CONFIG_NXM; i++){
@@ -74,14 +74,14 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, float *Xp, uint32_t
     mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
     sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
 
-    mulmv((float *)DMPC_K_f1, DMPC_CONFIG_NU, Xp, DMPC_CONFIG_L_PAST, auxm1);
-    sumv(auxm1, du, DMPC_CONFIG_NU, du);
+    mulmv((float *)DMPC_K_f1, DMPC_CONFIG_NU, Xp, DMPC_CONFIG_L_PAST * DMPC_CONFIG_NXM, auxm1);
+    sumv(du, auxm1, DMPC_CONFIG_NU, du);
 
     mulmv((float *)DMPC_K_f2, DMPC_CONFIG_NU, x, DMPC_CONFIG_NXM, auxm1);
-    sumv(auxm1, du, DMPC_CONFIG_NU, du);
+    sumv(du, auxm1, DMPC_CONFIG_NU, du);
 
-    mulmv((float *)DMPC_K_f2, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
-    sumv(auxm1, du, DMPC_CONFIG_NU, du);
+    mulmv((float *)DMPC_K_f3, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
+    subv(du, auxm1, DMPC_CONFIG_NU, du);
 
 #else
 
