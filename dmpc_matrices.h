@@ -8,8 +8,6 @@
  * diagonal elements, so that Hildreth's algorithm does not require any 
  * divisions.
  *
- *  Originally created on: 22.04.2022
- *      Author: mguerreiro
  */
 
 #ifndef DMPC_MATRICES_H_
@@ -23,13 +21,24 @@ extern float DMPC_CONFIG_U_MAX[1];
 extern uint32_t DMPC_CONFIG_U_LIM_IDX[1];
 
 /* State constraints */
- 
-/* Indexes of outputs */
+extern float DMPC_CONFIG_XM_MIN[1];
+extern float DMPC_CONFIG_XM_MAX[1];
+extern uint32_t DMPC_CONFIG_XM_LIM_IDX[1];
+
+/* Index of ouputs */
 extern uint32_t DMPC_CONFIG_Y_IDX[1];
 
-/* A and B matrices for prediction */
-extern float DMPC_M_A[1];
+/*
+ * A and B matrices for prediction.
+ * A corresponds to model matrix Am.
+ * B corresponds to model matrix Bm concatenated with Bd, if Bd exists.
+*/
+extern float DMPC_M_A[2][2];
 extern float DMPC_M_B[2];
+
+/* Optimal Kx and Ky for unconstrained problems */
+extern float DMPC_Kx[2];
+extern float DMPC_Ky[1];
 
 /*
  * Matrices for QP solvers 
@@ -46,28 +55,18 @@ extern float DMPC_M_B[2];
  * Note that the Fj and gam matrices are usually updated online, while Ej
  * and M are static.
  */
-extern float DMPC_M_Ej[10][10];
+extern float DMPC_M_Ej[4][4];
+extern float DMPC_M_Fj[4];
+extern float DMPC_M_M[16][4];
+extern float DMPC_M_gam[16];
 
-extern float DMPC_M_Fj[10];
-
-extern float DMPC_M_M[2][10];
-
-extern float DMPC_M_gam[2];
-
- /* Matrices for Hildreth's QP procedure */
-extern float DMPC_M_Fj_1[10];
-
-extern float DMPC_M_Fj_2[10][2];
-
-extern float DMPC_M_Fx[1];
-
-extern float DMPC_M_Kj_1[2][10];
-
-extern float DMPC_M_Hj[2][2];
-
-extern float DMPC_M_DU_1[10];
-
-extern float DMPC_M_DU_2[2];
-
+/* Matrices for Hildreth's QP procedure */
+extern float DMPC_M_Fj_1[4];
+extern float DMPC_M_Fj_2[4][3];
+extern float DMPC_M_Fx[4][2];
+extern float DMPC_M_Kj_1[16][4];
+extern float DMPC_M_Hj[16][16];
+extern float DMPC_M_DU_1[4];
+extern float DMPC_M_DU_2[16];
 
 #endif /* DMPC_MATRICES_H_ */
