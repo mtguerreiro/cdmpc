@@ -24,13 +24,15 @@
 #include "osqp/workspace.h"
 #include "osqp/osqp.h"
 #endif
+
+// #include "stdio.h"
 //=============================================================================
 
 //=============================================================================
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
 #ifdef DMPC_CONFIG_SOLVER_HILD
-static uint32_t dmpcHildOpt(float *du);
+static uint32_t dmpcHildOpt(float *du, float *c1, float *c2);
 #endif
 
 #ifdef DMPC_CONFIG_SOLVER_OSQP
@@ -47,6 +49,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	uint32_t i, j, k, w;
     
     uint32_t iters = 0;
+
+	float c1, c2, c3, c4, c5, ct;
 
 #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
 
@@ -141,7 +145,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
     }   
 #endif
 
-	iters = dmpcHildOpt(du);
+	iters = dmpcHildOpt(du, &c1, &c2);
+
 #endif
 
 #ifdef DMPC_CONFIG_SOLVER_OSQP
@@ -181,6 +186,29 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 #endif // #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
     
+	/*	printf("DMPC_M_Fj: ");
+	 f or(i = 0; i < DM*PC_CONFIG_NXA; i++){
+	 printf("%0.4f ", DMPC_M_Fj[i]);
+}
+printf("\n\n")*/;
+
+	float G[DMPC_CONFIG_NXA];
+	mulmv((float *)DMPC_F, DMPC_CONFIG_L_PRED * DMPC_CONFIG_NY, xa, DMPC_CONFIG_NXA, G);
+	mulmv(G, 1, G, DMPC_CONFIG_L_PRED * DMPC_CONFIG_NY, &c3);
+
+	c4 = DMPC_CONFIG_L_PRED * *r * *r;
+
+	c5 = 0.0f;
+	for(i = 0; i < DMPC_CONFIG_L_PRED * DMPC_CONFIG_NY; i++){
+		c5 += G[i];
+	}
+	c5 = -2.0f * c5 * *r;
+
+	ct = c1 + c2 + c3 + c4 + c5;
+
+	// printf("c1: %.4f\t c2: %.4f\t c3: %.4f\t c4: %.4f\t c5: %.4f\t \n", c1, c2, c3, c4, c5);
+	// printf("ct: %.4f\n\n", ct);
+
     if( niters != 0 ) *niters = iters;
 
 	return 0;
@@ -203,12 +231,17 @@ void dmpcDelayComp(float *x_1, float *x, float *u){
 #if ( ( DMPC_CONFIG_NU_CNT != 0 ) || (DMPC_CONFIG_NXM_CNT != 0) )
 //-----------------------------------------------------------------------------
 #ifdef DMPC_CONFIG_SOLVER_HILD
-static uint32_t dmpcHildOpt(float *du){
+static uint32_t dmpcHildOpt(float *du, float *c1, float *c2){
 
 	uint32_t niter;
+	uint32_t i;
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_NLAMBDA];
+
+	float du_full[DMPC_CONFIG_U_SIZE];
+	float auxm2[DMPC_CONFIG_U_SIZE];
+	float auxm3[DMPC_CONFIG_U_SIZE];
 
 	/* Matrices and vectors */
 	float Kj[DMPC_CONFIG_NLAMBDA];
@@ -230,8 +263,27 @@ static uint32_t dmpcHildOpt(float *du){
 	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, du);
 	mulmv((float *)DMPC_M_DU_2, DMPC_CONFIG_NU, lambda, DMPC_CONFIG_NLAMBDA, auxm1);
 	sumv(du, auxm1, DMPC_CONFIG_NU, du);
-    
-    return niter;
+
+	/* Computes DU  */
+	mulmv((float *)DMPC_M_DU_1_full, DMPC_CONFIG_U_SIZE, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, auxm2);
+	mulmv((float *)DMPC_M_DU_2_full, DMPC_CONFIG_U_SIZE, lambda, DMPC_CONFIG_NLAMBDA, auxm3);
+	sumv(auxm2, auxm3, DMPC_CONFIG_U_SIZE, du_full);
+
+	/* Computes c1 = DU' Ej DU */
+	mulmv((float *)DMPC_M_Ej, DMPC_CONFIG_U_SIZE, du_full, DMPC_CONFIG_U_SIZE, auxm2);
+	mulmv((float *)auxm2, 1, du_full, DMPC_CONFIG_U_SIZE, c1);
+
+	/* Computes c2 = -2 DU' Fj */
+	mulmv((float *)DMPC_M_Fj, 1, du_full, DMPC_CONFIG_U_SIZE, c2);
+	*c2 = -2.0f * *c2;
+
+	// printf("du_full: ");
+	// for(i = 0; i < DMPC_CONFIG_U_SIZE; i++){
+	// 	printf("%0.4f ", du_full[i]);
+	// }
+	// printf("\n\n");
+
+	return niter;
 }
 #endif
 //-----------------------------------------------------------------------------
