@@ -39,6 +39,16 @@ static uint32_t dmpcOSQP(float *du);
 //=============================================================================
 
 //=============================================================================
+/*--------------------------------- Globals ---------------------------------*/
+//=============================================================================
+#ifdef DMPC_CONFIG_SOLVER_OSQP
+#define LU_DATA_SIZE (DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT)
+static float ldata[LU_DATA_SIZE];
+static float udata[LU_DATA_SIZE];
+#endif
+//=============================================================================
+
+//=============================================================================
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
@@ -240,16 +250,15 @@ static uint32_t dmpcOSQP(float *du){
 
     uint32_t i;
 
-	osqp_update_bounds(&workspace, ldata, udata);
-	osqp_update_lin_cost(&workspace, DMPC_M_Fj);
+	osqp_update_data_vec(&solver, DMPC_M_Fj, ldata, udata);
 
-	osqp_solve(&workspace);
+	osqp_solve(&solver);
     
     for(i = 0; i < DMPC_CONFIG_NU; i++){
-	    du[i] = workspace.solution->x[i];    
+	    du[i] = solver.solution->x[i];
     }
 
-	return workspace.info->iter;
+	return solver.info->iter;
 }
 #endif
 //-----------------------------------------------------------------------------
