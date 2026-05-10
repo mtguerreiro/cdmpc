@@ -12,6 +12,8 @@
 #include "dmpc_matrices.h"
 #include "dmpc_defs.h"
 
+#include "dmpc_data.h"
+
 #include "mvops.h"
 
 /* Hildreth's QP */
@@ -80,8 +82,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
         e[i] = -( x[DMPC_CONFIG_Y_IDX[i]] - r[i] );
     }
 
-    mulmv((float *)DMPC_Kx, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
-    mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
+    mulmv((float *)dmpc_data.Kx, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
+    mulmv((float *)dmpc_data.Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
     sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
 
 #else
@@ -109,9 +111,9 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	 * Fj_1 = -Phi.T * R_s_bar,
 	 * Fj_2 =  Phi.T * F
 	 */
-	mulmv((float *)DMPC_M_Fj_1, DMPC_CONFIG_U_SIZE, r, DMPC_CONFIG_NY, auxm1);
-	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_U_SIZE, xa, DMPC_CONFIG_NXA, auxm2);
-	sumv(auxm1, auxm2, DMPC_CONFIG_U_SIZE, DMPC_M_Fj);
+	mulmv((float *)dmpc_data.Fj_1, DMPC_CONFIG_U_SIZE, r, DMPC_CONFIG_NY, auxm1);
+	mulmv((float *)dmpc_data.Fj_2, DMPC_CONFIG_U_SIZE, xa, DMPC_CONFIG_NXA, auxm2);
+	sumv(auxm1, auxm2, DMPC_CONFIG_U_SIZE, dmpc_data.Fj);
 
 #ifdef DMPC_CONFIG_SOLVER_HILD
 	/*
@@ -124,29 +126,29 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #if ( DMPC_CONFIG_NU_CNT != 0 )
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
-			DMPC_M_gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
+			dmpc_data.gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
 		}
 	}
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
-			DMPC_M_gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
+			dmpc_data.gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
 		}
 	}
 #endif
 
 	/* Now, the state inequalities */
 #if ( DMPC_CONFIG_NXM_CNT != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
+    mulmv((float *)dmpc_data.Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
     w = 0;
     for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
         for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
-            DMPC_M_gam[j++] = -DMPC_CONFIG_XM_MIN[k] + x[DMPC_CONFIG_XM_LIM_IDX[k]] + auxm1[w++];
+            dmpc_data.gam[j++] = -dmpc_data.x_min[k] + x[dmpc_data.x_cnt_idx[k]] + auxm1[w++];
         }
     }
     w = 0;
     for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
         for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
-            DMPC_M_gam[j++] =  DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
+            dmpc_data.gam[j++] =  dmpc_data.x_max[k] - x[dmpc_data.x_cnt_idx[k]] - auxm1[w++];
         }
     }   
 #endif
@@ -165,8 +167,8 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 #if ( DMPC_CONFIG_NU_CNT != 0 )
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
-			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
-			udata[j] = DMPC_CONFIG_U_MAX[k] - u_1[k];
+			ldata[j] = dmpc_data.u_min[k] - u_1[k];
+			udata[j] = dmpc_data.u_max[k] - u_1[k];
 			j++;
 		}
 	}
@@ -174,12 +176,12 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* Now, the state inequalities */
 #if ( DMPC_CONFIG_NXM_CNT != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
+    mulmv((float *)dmpc_data.Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
     w = 0;
     for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
         for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
-            ldata[j] = DMPC_CONFIG_XM_MIN[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
-            udata[j] = DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
+            ldata[j] = dmpc_data.xm_min[k] - x[dmpc_data.x_cnt_idx[k]] - auxm1[w];
+            udata[j] = dmpc_data.xm_max[k] - x[dmpc_data.x_cnt_idx[k]] - auxm1[w];
             j++;
             w++;
         }
@@ -200,8 +202,8 @@ void dmpcDelayComp(float *x_1, float *x, float *u){
 
     float aux1[DMPC_CONFIG_NXM], aux2[DMPC_CONFIG_NXM];
 
-    mulmv((float *)DMPC_M_A, DMPC_CONFIG_NXM, x, DMPC_CONFIG_NXM, aux1);
-    mulmv((float *)DMPC_M_B, DMPC_CONFIG_NXM, u, DMPC_CONFIG_NU+DMPC_CONFIG_ND, aux2);
+    mulmv((float *)dmpc_data.A, DMPC_CONFIG_NXM, x, DMPC_CONFIG_NXM, aux1);
+    mulmv((float *)dmpc_data.B, DMPC_CONFIG_NXM, u, DMPC_CONFIG_NU+DMPC_CONFIG_ND, aux2);
     sumv(aux1, aux2, DMPC_CONFIG_NXM, x_1);
 }
 //-----------------------------------------------------------------------------
@@ -226,19 +228,19 @@ static uint32_t dmpcHildOpt(float *du){
 	//static float lambda[DIM_CONFIG_NLAMBDA] = {0};
 
 	/* Computes Kj */
-	mulmv((float *)DMPC_M_Kj_1, DMPC_CONFIG_NLAMBDA, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, (float *)auxm1);
-	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
+	mulmv((float *)dmpc_data.Kj_1, DMPC_CONFIG_NLAMBDA, dmpc_data.Fj, DMPC_CONFIG_U_SIZE, (float *)auxm1);
+	sumv(dmpc_data.gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
 #if (DMPC_CONFIG_HILD_FIXED_ITER == 0)
-	niter = qpHild((float *)DMPC_M_Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, DMPC_CONFIG_NLAMBDA, (float)DMPC_CONFIG_HILD_TOL);
+	niter = qpHild((float *)dmpc_data.Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, DMPC_CONFIG_NLAMBDA, (float)DMPC_CONFIG_HILD_TOL);
 #else
-	niter = qpHildFixedIter((float *)DMPC_M_Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, DMPC_CONFIG_NLAMBDA);
+	niter = qpHildFixedIter((float *)dmpc_data.Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, DMPC_CONFIG_NLAMBDA);
 #endif
 
 	/* Optimal control increment */
-	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, du);
-	mulmv((float *)DMPC_M_DU_2, DMPC_CONFIG_NU, lambda, DMPC_CONFIG_NLAMBDA, auxm1);
+	mulmv((float *)dmpc_data.DU_1, DMPC_CONFIG_NU, dmpc_data.Fj, DMPC_CONFIG_U_SIZE, du);
+	mulmv((float *)dmpc_data.DU_2, DMPC_CONFIG_NU, lambda, DMPC_CONFIG_NLAMBDA, auxm1);
 	sumv(du, auxm1, DMPC_CONFIG_NU, du);
     
     return niter;
@@ -250,7 +252,7 @@ static uint32_t dmpcOSQP(float *du){
 
     uint32_t i;
 
-	osqp_update_data_vec(&solver, DMPC_M_Fj, ldata, udata);
+	osqp_update_data_vec(&solver, dmpc_data.Fj, ldata, udata);
 
 	osqp_solve(&solver);
     
