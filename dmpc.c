@@ -9,9 +9,6 @@
 /*-------------------------------- Includes ---------------------------------*/
 //=============================================================================
 #include "dmpc.h"
-#include "dmpc_matrices.h"
-#include "dmpc_defs.h"
-
 #include "dmpc_data.h"
 
 #include "mvops.h"
@@ -97,7 +94,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
         xa[i] = x[i] - x_1[i];
     }
     for(i = 0; i < (DMPC_CONFIG_NXA - DMPC_CONFIG_NXM); i++){
-        xa[DMPC_CONFIG_NXM + i] = x[DMPC_CONFIG_Y_IDX[i]];
+        xa[DMPC_CONFIG_NXM + i] = x[dmpc_data.y_idx[i]];
     }
 
     /*
