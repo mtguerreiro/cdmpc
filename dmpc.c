@@ -6,17 +6,6 @@
 #include "dmpc_data.h"
 
 #include "mvops.h"
-
-/* Hildreth's QP */
-#ifdef DMPC_CONFIG_SOLVER_HILD
-#include "qp.h"
-#endif
-
-/* OSQP */
-#ifdef DMPC_CONFIG_SOLVER_OSQP
-#include "osqp/workspace.h"
-#include "osqp/osqp.h"
-#endif
 //=============================================================================
 
 //=============================================================================
@@ -24,14 +13,6 @@
 //=============================================================================
 static uint32_t dmpcOptUnconstrained(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du);
 uint32_t dmpcOptConstrained(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du);
-
-#ifdef DMPC_CONFIG_SOLVER_HILD
-static uint32_t dmpcHildOpt(float *du);
-#endif
-
-#ifdef DMPC_CONFIG_SOLVER_OSQP
-static uint32_t dmpcOSQP(float *du);
-#endif
 //=============================================================================
 
 //=============================================================================
@@ -149,81 +130,11 @@ uint32_t dmpcOptConstrained(float *x, float *x_1, float *r, float *u_1, uint32_t
         }
     }
 
-#ifdef DMPC_CONFIG_SOLVER_HILD
-    iters = dmpcHildOpt(du);
-#endif
-
-    #ifdef DMPC_CONFIG_SOLVER_OSQP
-    iters = dmpcOSQP(du);
-#endif
+    iters = (uint32_t) dmpc_data.solve(du);
 
     if( niters != 0 ) *niters = iters;
 
     return 0;
 }
-//-----------------------------------------------------------------------------
-#ifdef DMPC_CONFIG_SOLVER_HILD
-static uint32_t dmpcHildOpt(float *du){
-
-	uint32_t niter;
-
-	/* Computes Kj */
-	mulmv((float *)dmpc_data.Kj_1, dmpc_data.n_lambda, dmpc_data.Fj, dmpc_data.u_size, dmpc_data.auxm1);
-	sumv(dmpc_data.gam, dmpc_data.auxm1, dmpc_data.n_lambda, dmpc_data.Kj);
-
-	/* Opt */
-#if (DMPC_CONFIG_HILD_FIXED_ITER == 0)
-	niter = qpHild((float *)dmpc_data.Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, dmpc_data.n_lambda, (float)DMPC_CONFIG_HILD_TOL);
-#else
-	niter = qpHildFixedIter((float *)dmpc_data.Hj, dmpc_data.Kj, DMPC_CONFIG_HILD_N_ITER, dmpc_data.lambda, dmpc_data.n_lambda);
-#endif
-
-	/* Optimal control increment */
-	mulmv((float *)dmpc_data.DU_1, dmpc_data.nu, dmpc_data.Fj, dmpc_data.u_size, du);
-	mulmv((float *)dmpc_data.DU_2, dmpc_data.nu, dmpc_data.lambda, dmpc_data.n_lambda, dmpc_data.auxm1);
-	sumv(du, dmpc_data.auxm1, dmpc_data.nu, du);
-    
-    return niter;
-}
-#endif
-//-----------------------------------------------------------------------------
-#ifdef DMPC_CONFIG_SOLVER_OSQP
-static uint32_t dmpcOSQP(float *du){
-
-    uint32_t i, j, k, w;
-
-    j = 0;
-    if(dmpc_data.l_u_cnt != 0 ){
-        for(i = 0; i < dmpc_data.l_u_cnt; i++){
-            for(k = 0; k < dmpc_data.nu; k++){
-                dmpc_data.ldata[j] = -dmpc_data.gam[k];
-                dmpc_data.udata[j] = dmpc_data.gam[dmpc_data.nu*dmpc_data.l_u_cnt+k];
-                j++;
-            }
-        }
-    }
-
-    if(dmpc_data.l_x_cnt != 0 ){
-        w = 2*dmpc_data.nu*dmpc_data.l_u_cnt;
-        for(i = 0; i < dmpc_data.l_x_cnt; i++){
-            for( k = 0; k < dmpc_data.n_x_cnt; k++){
-                dmpc_data.ldata[j] = -dmpc_data.gam[k + w];
-                dmpc_data.udata[j] = dmpc_data.gam[dmpc_data.n_x_cnt*dmpc_data.l_x_cnt+k + w];
-                j++;
-            }
-        }
-    }
-
-    osqp_update_data_vec(&solver, dmpc_data.Fj, dmpc_data.ldata, dmpc_data.udata);
-
-    osqp_solve(&solver);
-
-    for(i = 0; i < dmpc_data.nu; i++){
-        du[i] = solver.solution->x[i];
-    }
-
-    return solver.info->iter;
-}
-#endif
 //-----------------------------------------------------------------------------
 //=============================================================================
