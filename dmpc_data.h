@@ -46,21 +46,6 @@ typedef struct{
 }dmpc_data_t;
 
 typedef struct{
-    uint32_t fixed_iter;
-    uint32_t n_iter;
-    float tol;
-    uint32_t max_iter;
-    uint32_t n_lambda;
-    float *Kj_1;
-    float *Hj;
-    float *Kj;
-    float *lambda;
-    float *DU_1;
-    float *DU_2;
-    float *aux;
-}dmpc_hild_data_t;
-
-typedef struct{
     dmpc_data_t *prob_data;
     void *solver_data;
     int32_t (*solve)(dmpc_data_t *, void *);
