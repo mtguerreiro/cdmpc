@@ -46,6 +46,10 @@ typedef struct{
 }dmpc_data_t;
 
 typedef struct{
+    uint32_t fixed_iter;
+    uint32_t n_iter;
+    float tol;
+    uint32_t max_iter;
     uint32_t n_lambda;
     float *Kj_1;
     float *Hj;

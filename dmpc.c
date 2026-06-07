@@ -46,22 +46,23 @@ int32_t dmpcOpt(dmpc_inst_t *inst){
 static int32_t dmpcOptUnconstrained(dmpc_inst_t *inst){
 
     uint32_t i;
+    dmpc_data_t *pdata = inst->prob_data;
 
     /* Assembles -dx state vector */
-    for(i = 0; i < inst->prob_data->n_xm; i++){
-        inst->prob_data->dx[i] = -(inst->prob_data->x[i] - inst->prob_data->x_1[i]);
+    for(i = 0; i < pdata->n_xm; i++){
+        pdata->dx[i] = -(pdata->x[i] - pdata->x_1[i]);
     }
 
     /* Assembles -error vector */
-    for(i = 0; i < inst->prob_data->ny; i++){
-        inst->prob_data->e[i] = -( inst->prob_data->x[inst->prob_data->y_idx[i]] - inst->prob_data->r[i] );
+    for(i = 0; i < pdata->ny; i++){
+        pdata->e[i] = -( pdata->x[pdata->y_idx[i]] - pdata->r[i] );
     }
 
-    mulmv((float *)inst->prob_data->Kx, inst->prob_data->nu, inst->prob_data->dx, inst->prob_data->n_xm, inst->prob_data->auxm1);
-    mulmv((float *)inst->prob_data->Ky, inst->prob_data->nu, inst->prob_data->e, inst->prob_data->ny, inst->prob_data->auxm2);
-    sumv(inst->prob_data->auxm1, inst->prob_data->auxm2, inst->prob_data->nu, inst->prob_data->du);
+    mulmv((float *)pdata->Kx, pdata->nu, pdata->dx, pdata->n_xm, pdata->auxm1);
+    mulmv((float *)pdata->Ky, pdata->nu, pdata->e, pdata->ny, pdata->auxm2);
+    sumv(pdata->auxm1, pdata->auxm2, pdata->nu, pdata->du);
 
-    inst->prob_data->n_iters = 0;
+    pdata->n_iters = 0;
 
     return 0;
 }
@@ -70,13 +71,14 @@ static int32_t dmpcOptConstrained(dmpc_inst_t *inst){
 
     int32_t status;
     uint32_t i, j, k, w;
+    dmpc_data_t *pdata = inst->prob_data;
 
     /* Assembles augmented state vector */
-    for(i = 0; i < inst->prob_data->n_xm; i++){
-        inst->prob_data->xa[i] = inst->prob_data->x[i] - inst->prob_data->x_1[i];
+    for(i = 0; i < pdata->n_xm; i++){
+        pdata->xa[i] = pdata->x[i] - pdata->x_1[i];
     }
-    for(i = 0; i < (inst->prob_data->n_xa - inst->prob_data->n_xm); i++){
-        inst->prob_data->xa[inst->prob_data->n_xm + i] = inst->prob_data->x[inst->prob_data->y_idx[i]];
+    for(i = 0; i < (pdata->n_xa - pdata->n_xm); i++){
+        pdata->xa[pdata->n_xm + i] = pdata->x[pdata->y_idx[i]];
     }
 
     /*
@@ -87,9 +89,9 @@ static int32_t dmpcOptConstrained(dmpc_inst_t *inst){
      * Fj_1 = -Phi.T * R_s_bar,
      * Fj_2 =  Phi.T * F
      */
-    mulmv((float *)inst->prob_data->Fj_1, inst->prob_data->u_size, inst->prob_data->r, inst->prob_data->ny, inst->prob_data->auxm1);
-    mulmv((float *)inst->prob_data->Fj_2, inst->prob_data->u_size, inst->prob_data->xa, inst->prob_data->n_xa, inst->prob_data->auxm2);
-    sumv(inst->prob_data->auxm1, inst->prob_data->auxm2, inst->prob_data->u_size, inst->prob_data->Fj);
+    mulmv((float *)pdata->Fj_1, pdata->u_size, pdata->r, pdata->ny, pdata->auxm1);
+    mulmv((float *)pdata->Fj_2, pdata->u_size, pdata->xa, pdata->n_xa, pdata->auxm2);
+    sumv(pdata->auxm1, pdata->auxm2, pdata->u_size, pdata->Fj);
 
     /*
      * Computes the gam vector (or y vector). This vector holds the control
@@ -98,32 +100,32 @@ static int32_t dmpcOptConstrained(dmpc_inst_t *inst){
 
     /* We start by assembling the control inequalities */
     j = 0;
-    if(inst->prob_data->l_u_cnt != 0 ){
-        for(i = 0; i < inst->prob_data->l_u_cnt; i++){
-            for(k = 0; k < inst->prob_data->nu; k++){
-                inst->prob_data->gam[j++] = -inst->prob_data->u_min[k] + inst->prob_data->u_1[k];
+    if(pdata->l_u_cnt != 0 ){
+        for(i = 0; i < pdata->l_u_cnt; i++){
+            for(k = 0; k < pdata->nu; k++){
+                pdata->gam[j++] = -pdata->u_min[k] + pdata->u_1[k];
             }
         }
-        for(i = 0; i < inst->prob_data->l_u_cnt; i++){
-            for(k = 0; k < inst->prob_data->nu; k++){
-                inst->prob_data->gam[j++] =  inst->prob_data->u_max[k] - inst->prob_data->u_1[k];
+        for(i = 0; i < pdata->l_u_cnt; i++){
+            for(k = 0; k < pdata->nu; k++){
+                pdata->gam[j++] =  pdata->u_max[k] - pdata->u_1[k];
             }
         }
     }
 
     /* Now, the state inequalities */
-    if(inst->prob_data->l_x_cnt != 0 ){
-        mulmv((float *)inst->prob_data->Fx, inst->prob_data->l_x_cnt * inst->prob_data->n_x_cnt, inst->prob_data->xa, inst->prob_data->n_xm, inst->prob_data->auxm1);
+    if(pdata->l_x_cnt != 0 ){
+        mulmv((float *)pdata->Fx, pdata->l_x_cnt * pdata->n_x_cnt, pdata->xa, pdata->n_xm, pdata->auxm1);
         w = 0;
-        for(i = 0; i < inst->prob_data->l_x_cnt; i++){
-            for( k = 0; k < inst->prob_data->n_x_cnt; k++){
-                inst->prob_data->gam[j++] = -inst->prob_data->x_min[k] + inst->prob_data->x[inst->prob_data->x_cnt_idx[k]] + inst->prob_data->auxm1[w++];
+        for(i = 0; i < pdata->l_x_cnt; i++){
+            for( k = 0; k < pdata->n_x_cnt; k++){
+                pdata->gam[j++] = -pdata->x_min[k] + pdata->x[pdata->x_cnt_idx[k]] + pdata->auxm1[w++];
             }
         }
         w = 0;
-        for(i = 0; i < inst->prob_data->l_x_cnt; i++){
-            for( k = 0; k < inst->prob_data->n_x_cnt; k++){
-                inst->prob_data->gam[j++] =  inst->prob_data->x_max[k] - inst->prob_data->x[inst->prob_data->x_cnt_idx[k]] - inst->prob_data->auxm1[w++];
+        for(i = 0; i < pdata->l_x_cnt; i++){
+            for( k = 0; k < pdata->n_x_cnt; k++){
+                pdata->gam[j++] =  pdata->x_max[k] - pdata->x[pdata->x_cnt_idx[k]] - pdata->auxm1[w++];
             }
         }
     }

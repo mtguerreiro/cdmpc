@@ -22,27 +22,30 @@ static void dmpc_hild_qp_solve_fixed_iter(float *H, float *K, uint32_t n_iter, f
 //-----------------------------------------------------------------------------
 int32_t dmpc_hild_solve(dmpc_data_t *prob_data, void *hild_data){
 
-    int32_t niter;
+    uint32_t n_iters;
     dmpc_hild_data_t *hdata = (dmpc_hild_data_t *)hild_data;
 
     /* Computes Kj */
-    mulmv((float *)hdata->Kj_1, hdata->n_lambda, prob_data->Fj, prob_data->u_size, hdata->aux);
+    mulmv(hdata->Kj_1, hdata->n_lambda, prob_data->Fj, prob_data->u_size, hdata->aux);
     sumv(prob_data->gam, hdata->aux, hdata->n_lambda, hdata->Kj);
 
     /* Opt */
-#if (DMPC_CONFIG_HILD_FIXED_ITER == 0)
-    niter = (int32_t) dmpc_hild_qp_solve((float *)hdata->Hj, hdata->Kj, DMPC_CONFIG_HILD_N_ITER, hdata->lambda, hdata->n_lambda, (float)DMPC_CONFIG_HILD_TOL);
-#else
-    dmpc_hild_qp_solve_fixed_iter((float *)hdata->Hj, hdata->Kj, DMPC_CONFIG_HILD_N_ITER, hdata->lambda, hdata->n_lambda);
-    niter = (int32_t)DMPC_CONFIG_HILD_N_ITER;
-#endif
+    if( hdata->fixed_iter ){
+        dmpc_hild_qp_solve_fixed_iter(hdata->Hj, hdata->Kj, hdata->n_iter, hdata->lambda, hdata->n_lambda);
+        n_iters = hdata->n_iter;
+    }
+    else{
+        n_iters = dmpc_hild_qp_solve(hdata->Hj, hdata->Kj, hdata->max_iter, hdata->lambda, hdata->n_lambda, hdata->tol);
+    }
+
+    prob_data->n_iters = n_iters;
 
     /* Optimal control increment */
     mulmv((float *)hdata->DU_1, prob_data->nu, prob_data->Fj, prob_data->u_size, prob_data->du);
     mulmv((float *)hdata->DU_2, prob_data->nu, hdata->lambda, hdata->n_lambda, hdata->aux);
     sumv(prob_data->du, hdata->aux, prob_data->nu, prob_data->du);
 
-    return niter;
+    return 0;
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
