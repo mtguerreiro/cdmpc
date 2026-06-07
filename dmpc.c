@@ -3,7 +3,6 @@
 /*-------------------------------- Includes ---------------------------------*/
 //=============================================================================
 #include "dmpc.h"
-#include "dmpc_data.h"
 
 #include "mvops.h"
 //=============================================================================
@@ -11,32 +10,32 @@
 //=============================================================================
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
-static uint32_t dmpcOptUnconstrained(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du);
-uint32_t dmpcOptConstrained(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du);
+static int32_t dmpcOptUnconstrained(dmpc_inst_t *inst);
+static int32_t dmpcOptConstrained(dmpc_inst_t *inst);
 //=============================================================================
 
 //=============================================================================
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du){
+int32_t dmpcOpt(dmpc_inst_t *inst){
 
-    uint32_t status;
+    int32_t status;
 
-    if( (dmpc_data.l_u_cnt == 0) && (dmpc_data.l_x_cnt == 0) )
-        status = dmpcOptUnconstrained(x, x_1, r, u_1, niters, du);
+    if( (inst->prob_data->l_u_cnt == 0) && (inst->prob_data->l_x_cnt == 0) )
+        status = dmpcOptUnconstrained(inst);
     else
-        status = dmpcOptConstrained(x, x_1, r, u_1, niters, du);
+        status = dmpcOptConstrained(inst);
 
     return status;
 }
 //-----------------------------------------------------------------------------
-void dmpcDelayComp(float *x_1, float *x, float *u){
-
-    mulmv((float *)dmpc_data.A, dmpc_data.n_xm, x, dmpc_data.n_xm, dmpc_data.auxm1);
-    mulmv((float *)dmpc_data.B, dmpc_data.n_xm, u, dmpc_data.nu+dmpc_data.nd, dmpc_data.auxm2);
-    sumv(dmpc_data.auxm1, dmpc_data.auxm2, dmpc_data.n_xm, x_1);
-}
+// void dmpcDelayComp(float *x_1, float *x, float *u){
+//
+//     mulmv((float *)inst->prob_data->A, inst->prob_data->n_xm, x, inst->prob_data->n_xm, inst->prob_data->auxm1);
+//     mulmv((float *)inst->prob_data->B, inst->prob_data->n_xm, u, inst->prob_data->nu+inst->prob_data->nd, inst->prob_data->auxm2);
+//     sumv(inst->prob_data->auxm1, inst->prob_data->auxm2, inst->prob_data->n_xm, x_1);
+// }
 //-----------------------------------------------------------------------------
 //=============================================================================
 
@@ -44,41 +43,40 @@ void dmpcDelayComp(float *x_1, float *x, float *u){
 /*---------------------------- Static functions -----------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-static uint32_t dmpcOptUnconstrained(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du){
+static int32_t dmpcOptUnconstrained(dmpc_inst_t *inst){
 
     uint32_t i;
 
     /* Assembles -dx state vector */
-    for(i = 0; i < dmpc_data.n_xm; i++){
-        dmpc_data.dx[i] = -(x[i] - x_1[i]);
+    for(i = 0; i < inst->prob_data->n_xm; i++){
+        inst->prob_data->dx[i] = -(inst->prob_data->x[i] - inst->prob_data->x_1[i]);
     }
 
     /* Assembles -error vector */
-    for(i = 0; i < dmpc_data.ny; i++){
-        dmpc_data.e[i] = -( x[dmpc_data.y_idx[i]] - r[i] );
+    for(i = 0; i < inst->prob_data->ny; i++){
+        inst->prob_data->e[i] = -( inst->prob_data->x[inst->prob_data->y_idx[i]] - inst->prob_data->r[i] );
     }
 
-    mulmv((float *)dmpc_data.Kx, dmpc_data.nu, dmpc_data.dx, dmpc_data.n_xm, dmpc_data.auxm1);
-    mulmv((float *)dmpc_data.Ky, dmpc_data.nu, dmpc_data.e, dmpc_data.ny, dmpc_data.auxm2);
-    sumv(dmpc_data.auxm1, dmpc_data.auxm2, dmpc_data.nu, du);
+    mulmv((float *)inst->prob_data->Kx, inst->prob_data->nu, inst->prob_data->dx, inst->prob_data->n_xm, inst->prob_data->auxm1);
+    mulmv((float *)inst->prob_data->Ky, inst->prob_data->nu, inst->prob_data->e, inst->prob_data->ny, inst->prob_data->auxm2);
+    sumv(inst->prob_data->auxm1, inst->prob_data->auxm2, inst->prob_data->nu, inst->prob_data->du);
 
-    if( niters != 0 ) *niters = 0;
+    inst->prob_data->n_iters = 0;
 
     return 0;
 }
 //-----------------------------------------------------------------------------
-uint32_t dmpcOptConstrained(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du){
+static int32_t dmpcOptConstrained(dmpc_inst_t *inst){
 
+    int32_t status;
     uint32_t i, j, k, w;
 
-    uint32_t iters = 0;
-
     /* Assembles augmented state vector */
-    for(i = 0; i < dmpc_data.n_xm; i++){
-        dmpc_data.xa[i] = x[i] - x_1[i];
+    for(i = 0; i < inst->prob_data->n_xm; i++){
+        inst->prob_data->xa[i] = inst->prob_data->x[i] - inst->prob_data->x_1[i];
     }
-    for(i = 0; i < (dmpc_data.n_xa - dmpc_data.n_xm); i++){
-        dmpc_data.xa[dmpc_data.n_xm + i] = x[dmpc_data.y_idx[i]];
+    for(i = 0; i < (inst->prob_data->n_xa - inst->prob_data->n_xm); i++){
+        inst->prob_data->xa[inst->prob_data->n_xm + i] = inst->prob_data->x[inst->prob_data->y_idx[i]];
     }
 
     /*
@@ -89,9 +87,9 @@ uint32_t dmpcOptConstrained(float *x, float *x_1, float *r, float *u_1, uint32_t
      * Fj_1 = -Phi.T * R_s_bar,
      * Fj_2 =  Phi.T * F
      */
-    mulmv((float *)dmpc_data.Fj_1, dmpc_data.u_size, r, dmpc_data.ny, dmpc_data.auxm1);
-    mulmv((float *)dmpc_data.Fj_2, dmpc_data.u_size, dmpc_data.xa, dmpc_data.n_xa, dmpc_data.auxm2);
-    sumv(dmpc_data.auxm1, dmpc_data.auxm2, dmpc_data.u_size, dmpc_data.Fj);
+    mulmv((float *)inst->prob_data->Fj_1, inst->prob_data->u_size, inst->prob_data->r, inst->prob_data->ny, inst->prob_data->auxm1);
+    mulmv((float *)inst->prob_data->Fj_2, inst->prob_data->u_size, inst->prob_data->xa, inst->prob_data->n_xa, inst->prob_data->auxm2);
+    sumv(inst->prob_data->auxm1, inst->prob_data->auxm2, inst->prob_data->u_size, inst->prob_data->Fj);
 
     /*
      * Computes the gam vector (or y vector). This vector holds the control
@@ -100,41 +98,39 @@ uint32_t dmpcOptConstrained(float *x, float *x_1, float *r, float *u_1, uint32_t
 
     /* We start by assembling the control inequalities */
     j = 0;
-    if(dmpc_data.l_u_cnt != 0 ){
-        for(i = 0; i < dmpc_data.l_u_cnt; i++){
-            for(k = 0; k < dmpc_data.nu; k++){
-                dmpc_data.gam[j++] = -dmpc_data.u_min[k] + u_1[k];
+    if(inst->prob_data->l_u_cnt != 0 ){
+        for(i = 0; i < inst->prob_data->l_u_cnt; i++){
+            for(k = 0; k < inst->prob_data->nu; k++){
+                inst->prob_data->gam[j++] = -inst->prob_data->u_min[k] + inst->prob_data->u_1[k];
             }
         }
-        for(i = 0; i < dmpc_data.l_u_cnt; i++){
-            for(k = 0; k < dmpc_data.nu; k++){
-                dmpc_data.gam[j++] =  dmpc_data.u_max[k] - u_1[k];
+        for(i = 0; i < inst->prob_data->l_u_cnt; i++){
+            for(k = 0; k < inst->prob_data->nu; k++){
+                inst->prob_data->gam[j++] =  inst->prob_data->u_max[k] - inst->prob_data->u_1[k];
             }
         }
     }
 
     /* Now, the state inequalities */
-    if(dmpc_data.l_x_cnt != 0 ){
-        mulmv((float *)dmpc_data.Fx, dmpc_data.l_x_cnt * dmpc_data.n_x_cnt, dmpc_data.xa, dmpc_data.n_xm, dmpc_data.auxm1);
+    if(inst->prob_data->l_x_cnt != 0 ){
+        mulmv((float *)inst->prob_data->Fx, inst->prob_data->l_x_cnt * inst->prob_data->n_x_cnt, inst->prob_data->xa, inst->prob_data->n_xm, inst->prob_data->auxm1);
         w = 0;
-        for(i = 0; i < dmpc_data.l_x_cnt; i++){
-            for( k = 0; k < dmpc_data.n_x_cnt; k++){
-                dmpc_data.gam[j++] = -dmpc_data.x_min[k] + x[dmpc_data.x_cnt_idx[k]] + dmpc_data.auxm1[w++];
+        for(i = 0; i < inst->prob_data->l_x_cnt; i++){
+            for( k = 0; k < inst->prob_data->n_x_cnt; k++){
+                inst->prob_data->gam[j++] = -inst->prob_data->x_min[k] + inst->prob_data->x[inst->prob_data->x_cnt_idx[k]] + inst->prob_data->auxm1[w++];
             }
         }
         w = 0;
-        for(i = 0; i < dmpc_data.l_x_cnt; i++){
-            for( k = 0; k < dmpc_data.n_x_cnt; k++){
-                dmpc_data.gam[j++] =  dmpc_data.x_max[k] - x[dmpc_data.x_cnt_idx[k]] - dmpc_data.auxm1[w++];
+        for(i = 0; i < inst->prob_data->l_x_cnt; i++){
+            for( k = 0; k < inst->prob_data->n_x_cnt; k++){
+                inst->prob_data->gam[j++] =  inst->prob_data->x_max[k] - inst->prob_data->x[inst->prob_data->x_cnt_idx[k]] - inst->prob_data->auxm1[w++];
             }
         }
     }
 
-    iters = (uint32_t) dmpc_data.solve(du);
+    status = inst->solve(inst->prob_data, inst->solver_data);
 
-    if( niters != 0 ) *niters = iters;
-
-    return 0;
+    return status;
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

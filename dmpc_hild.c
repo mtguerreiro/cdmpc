@@ -6,6 +6,7 @@
 
 #include "mvops.h"
 #include "dmpc_data.h"
+#include "dmpc_data_hild.h"
 //=============================================================================
 
 //=============================================================================
@@ -19,26 +20,27 @@ static void dmpc_hild_qp_solve_fixed_iter(float *H, float *K, uint32_t n_iter, f
 /*-------------------------------- Functions --------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-int32_t dmpc_hild_solve(float *du){
+int32_t dmpc_hild_solve(dmpc_data_t *prob_data, void *hild_data){
 
     int32_t niter;
+    dmpc_hild_data_t *hdata = (dmpc_hild_data_t *)hild_data;
 
     /* Computes Kj */
-    mulmv((float *)dmpc_hild_data.Kj_1, dmpc_hild_data.n_lambda, dmpc_data.Fj, dmpc_data.u_size, dmpc_hild_data.aux);
-    sumv(dmpc_data.gam, dmpc_hild_data.aux, dmpc_hild_data.n_lambda, dmpc_hild_data.Kj);
+    mulmv((float *)hdata->Kj_1, hdata->n_lambda, prob_data->Fj, prob_data->u_size, hdata->aux);
+    sumv(prob_data->gam, hdata->aux, hdata->n_lambda, hdata->Kj);
 
     /* Opt */
 #if (DMPC_CONFIG_HILD_FIXED_ITER == 0)
-    niter = (int32_t) dmpc_hild_qp_solve((float *)dmpc_hild_data.Hj, dmpc_hild_data.Kj, DMPC_CONFIG_HILD_N_ITER, dmpc_hild_data.lambda, dmpc_hild_data.n_lambda, (float)DMPC_CONFIG_HILD_TOL);
+    niter = (int32_t) dmpc_hild_qp_solve((float *)hdata->Hj, hdata->Kj, DMPC_CONFIG_HILD_N_ITER, hdata->lambda, hdata->n_lambda, (float)DMPC_CONFIG_HILD_TOL);
 #else
-    dmpc_hild_qp_solve_fixed_iter((float *)dmpc_hild_data.Hj, dmpc_hild_data.Kj, DMPC_CONFIG_HILD_N_ITER, dmpc_hild_data.lambda, dmpc_hild_data.n_lambda);
+    dmpc_hild_qp_solve_fixed_iter((float *)hdata->Hj, hdata->Kj, DMPC_CONFIG_HILD_N_ITER, hdata->lambda, hdata->n_lambda);
     niter = (int32_t)DMPC_CONFIG_HILD_N_ITER;
 #endif
 
     /* Optimal control increment */
-    mulmv((float *)dmpc_hild_data.DU_1, dmpc_data.nu, dmpc_data.Fj, dmpc_data.u_size, du);
-    mulmv((float *)dmpc_hild_data.DU_2, dmpc_data.nu, dmpc_hild_data.lambda, dmpc_hild_data.n_lambda, dmpc_hild_data.aux);
-    sumv(du, dmpc_hild_data.aux, dmpc_data.nu, du);
+    mulmv((float *)hdata->DU_1, prob_data->nu, prob_data->Fj, prob_data->u_size, prob_data->du);
+    mulmv((float *)hdata->DU_2, prob_data->nu, hdata->lambda, hdata->n_lambda, hdata->aux);
+    sumv(prob_data->du, hdata->aux, prob_data->nu, prob_data->du);
 
     return niter;
 }
