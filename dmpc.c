@@ -38,9 +38,9 @@ static uint32_t dmpcHildOpt(float *du);
 
 #ifdef DMPC_CONFIG_SOLVER_OSQP
 static uint32_t dmpcOSQP(float *du);
+static uint32_t dmpcDAQP(float *du);
 #endif
 
-static uint32_t dmpcDAQP(float *du);
 //=============================================================================
 
 //=============================================================================
@@ -50,7 +50,6 @@ static uint32_t dmpcDAQP(float *du);
 #define LU_DATA_SIZE (DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT)
 static float ldata[LU_DATA_SIZE];
 static float udata[LU_DATA_SIZE];
-#endif
 
 static float daqp_x[DMPC_CONFIG_U_SIZE], daqp_lam[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT];
 
@@ -73,9 +72,8 @@ static DAQPProblem daqp_qp = {
 };
 
 static DAQPWorkspace daqp_work = {0};
+#endif
 
-// DAQPWorkspace work = {0};
-// DAQPProblem qp = {n,m,ms,H,f,A,bupper,blower,sense};
 //=============================================================================
 
 //=============================================================================
@@ -303,8 +301,7 @@ static uint32_t dmpcDAQP(float *du){
 		isinit = 1;
 	}
 
-	daqp_update_ldp(DAQP_UPDATE_v, &daqp_work, &daqp_qp);
-	// daqp_update_ldp(DAQP_UPDATE_d, &daqp_work, &daqp_qp);
+	daqp_update_ldp(DAQP_UPDATE_v | DAQP_UPDATE_d, &daqp_work, &daqp_qp);
 	daqp_solve(&daqp_result, &daqp_work);
 
 	for(i = 0; i < DMPC_CONFIG_NU; i++){
