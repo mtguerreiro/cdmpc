@@ -24,6 +24,9 @@
 #include "osqp/workspace.h"
 #include "osqp/osqp.h"
 #endif
+
+#include "daqp/daqp.h"
+#include "daqp/api.h"
 //=============================================================================
 
 //=============================================================================
@@ -36,6 +39,8 @@ static uint32_t dmpcHildOpt(float *du);
 #ifdef DMPC_CONFIG_SOLVER_OSQP
 static uint32_t dmpcOSQP(float *du);
 #endif
+
+static uint32_t dmpcDAQP(float *du);
 //=============================================================================
 
 //=============================================================================
@@ -46,6 +51,9 @@ static uint32_t dmpcOSQP(float *du);
 static float ldata[LU_DATA_SIZE];
 static float udata[LU_DATA_SIZE];
 #endif
+
+// DAQPWorkspace work = {0};
+// DAQPProblem qp = {n,m,ms,H,f,A,bupper,blower,sense};
 //=============================================================================
 
 //=============================================================================
@@ -55,10 +63,10 @@ static float udata[LU_DATA_SIZE];
 uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, float *du){
 
 	uint32_t i, j, k, w;
-    
-    uint32_t iters = 0;
 
-#if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
+	uint32_t iters = 0;
+
+	#if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_NU];
@@ -70,21 +78,21 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	/* Error */
 	float e[DMPC_CONFIG_NY];
 
-    /* Assembles -dx state vector */
-    for(i = 0; i < DMPC_CONFIG_NXM; i++){
-        dx[i] = -(x[i] - x_1[i]);
-    }
+	/* Assembles -dx state vector */
+	for(i = 0; i < DMPC_CONFIG_NXM; i++){
+		dx[i] = -(x[i] - x_1[i]);
+	}
 
-    /* Assembles -error vector */
-    for(i = 0; i < DMPC_CONFIG_NY; i++){
-        e[i] = -( x[DMPC_CONFIG_Y_IDX[i]] - r[i] );
-    }
+	/* Assembles -error vector */
+	for(i = 0; i < DMPC_CONFIG_NY; i++){
+		e[i] = -( x[DMPC_CONFIG_Y_IDX[i]] - r[i] );
+	}
 
-    mulmv((float *)DMPC_Kx, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
-    mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
-    sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
+	mulmv((float *)DMPC_Kx, DMPC_CONFIG_NU, dx, DMPC_CONFIG_NXM, auxm1);
+	mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
+	sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
 
-#else
+	#else
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_U_SIZE];
@@ -93,13 +101,13 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	/* Augmented states */
 	float xa[DMPC_CONFIG_NXA];
 
-    /* Assembles augmented state vector */
-    for(i = 0; i < DMPC_CONFIG_NXM; i++){
-        xa[i] = x[i] - x_1[i];
-    }
-    for(i = 0; i < (DMPC_CONFIG_NXA - DMPC_CONFIG_NXM); i++){
-        xa[DMPC_CONFIG_NXM + i] = x[DMPC_CONFIG_Y_IDX[i]];
-    }
+	/* Assembles augmented state vector */
+	for(i = 0; i < DMPC_CONFIG_NXM; i++){
+		xa[i] = x[i] - x_1[i];
+	}
+	for(i = 0; i < (DMPC_CONFIG_NXA - DMPC_CONFIG_NXM); i++){
+		xa[DMPC_CONFIG_NXM + i] = x[DMPC_CONFIG_Y_IDX[i]];
+	}
 
 	/*
 	 * Computes Fj matrix. This matrix is given by:
@@ -113,7 +121,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_U_SIZE, xa, DMPC_CONFIG_NXA, auxm2);
 	sumv(auxm1, auxm2, DMPC_CONFIG_U_SIZE, DMPC_M_Fj);
 
-#ifdef DMPC_CONFIG_SOLVER_HILD
+	#ifdef DMPC_CONFIG_SOLVER_HILD
 	/*
 	 * Computes the gam vector (or y vector). This vector holds the control
 	 * and state inequalities.
@@ -121,7 +129,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-#if ( DMPC_CONFIG_NU_CNT != 0 )
+	#if ( DMPC_CONFIG_NU_CNT != 0 )
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
@@ -132,29 +140,29 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			DMPC_M_gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
 		}
 	}
-#endif
+	#endif
 
 	/* Now, the state inequalities */
-#if ( DMPC_CONFIG_NXM_CNT != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
-    w = 0;
-    for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
-        for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
-            DMPC_M_gam[j++] = -DMPC_CONFIG_XM_MIN[k] + x[DMPC_CONFIG_XM_LIM_IDX[k]] + auxm1[w++];
-        }
-    }
-    w = 0;
-    for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
-        for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
-            DMPC_M_gam[j++] =  DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
-        }
-    }   
-#endif
+	#if ( DMPC_CONFIG_NXM_CNT != 0 )
+	mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
+	w = 0;
+	for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
+		for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
+			DMPC_M_gam[j++] = -DMPC_CONFIG_XM_MIN[k] + x[DMPC_CONFIG_XM_LIM_IDX[k]] + auxm1[w++];
+		}
+	}
+	w = 0;
+	for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
+		for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
+			DMPC_M_gam[j++] =  DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
+		}
+	}
+	#endif
 
 	iters = dmpcHildOpt(du);
-#endif
+	#endif
 
-#ifdef DMPC_CONFIG_SOLVER_OSQP
+	#if defined(DMPC_CONFIG_SOLVER_OSQP)
 	/*
 	 * Computes the gam vector (or y vector). This vector holds the control
 	 * and state inequalities.
@@ -162,7 +170,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-#if ( DMPC_CONFIG_NU_CNT != 0 )
+	#if ( DMPC_CONFIG_NU_CNT != 0 )
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
@@ -170,39 +178,40 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			j++;
 		}
 	}
-#endif
+	#endif
 
 	/* Now, the state inequalities */
-#if ( DMPC_CONFIG_NXM_CNT != 0 )
-    mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
-    w = 0;
-    for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
-        for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
-            ldata[j] = DMPC_CONFIG_XM_MIN[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
-            udata[j] = DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
-            j++;
-            w++;
-        }
-    }
-#endif
+	#if ( DMPC_CONFIG_NXM_CNT != 0 )
+	mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
+	w = 0;
+	for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
+		for( k = 0; k < DMPC_CONFIG_NXM_CNT; k++){
+			ldata[j] = DMPC_CONFIG_XM_MIN[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
+			udata[j] = DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w];
+			j++;
+			w++;
+		}
+	}
+	#endif
 
-	iters = dmpcOSQP(du);
-#endif
+	// iters = dmpcOSQP(du);
+	iters = dmpcDAQP(du);
+	#endif
 
-#endif // #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
-    
-    if( niters != 0 ) *niters = iters;
+	#endif // #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
+
+	if( niters != 0 ) *niters = iters;
 
 	return 0;
 }
 //-----------------------------------------------------------------------------
 void dmpcDelayComp(float *x_1, float *x, float *u){
 
-    float aux1[DMPC_CONFIG_NXM], aux2[DMPC_CONFIG_NXM];
+	float aux1[DMPC_CONFIG_NXM], aux2[DMPC_CONFIG_NXM];
 
-    mulmv((float *)DMPC_M_A, DMPC_CONFIG_NXM, x, DMPC_CONFIG_NXM, aux1);
-    mulmv((float *)DMPC_M_B, DMPC_CONFIG_NXM, u, DMPC_CONFIG_NU+DMPC_CONFIG_ND, aux2);
-    sumv(aux1, aux2, DMPC_CONFIG_NXM, x_1);
+	mulmv((float *)DMPC_M_A, DMPC_CONFIG_NXM, x, DMPC_CONFIG_NXM, aux1);
+	mulmv((float *)DMPC_M_B, DMPC_CONFIG_NXM, u, DMPC_CONFIG_NU+DMPC_CONFIG_ND, aux2);
+	sumv(aux1, aux2, DMPC_CONFIG_NXM, x_1);
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
@@ -230,35 +239,67 @@ static uint32_t dmpcHildOpt(float *du){
 	sumv(DMPC_M_gam, (float *)auxm1, DMPC_CONFIG_NLAMBDA, Kj);
 
 	/* Opt */
-#if (DMPC_CONFIG_HILD_FIXED_ITER == 0)
+	#if (DMPC_CONFIG_HILD_FIXED_ITER == 0)
 	niter = qpHild((float *)DMPC_M_Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, DMPC_CONFIG_NLAMBDA, (float)DMPC_CONFIG_HILD_TOL);
-#else
+	#else
 	niter = qpHildFixedIter((float *)DMPC_M_Hj, Kj, DMPC_CONFIG_HILD_N_ITER, lambda, DMPC_CONFIG_NLAMBDA);
-#endif
+	#endif
 
 	/* Optimal control increment */
 	mulmv((float *)DMPC_M_DU_1, DMPC_CONFIG_NU, DMPC_M_Fj, DMPC_CONFIG_U_SIZE, du);
 	mulmv((float *)DMPC_M_DU_2, DMPC_CONFIG_NU, lambda, DMPC_CONFIG_NLAMBDA, auxm1);
 	sumv(du, auxm1, DMPC_CONFIG_NU, du);
-    
-    return niter;
+
+	return niter;
 }
 #endif
 //-----------------------------------------------------------------------------
 #ifdef DMPC_CONFIG_SOLVER_OSQP
 static uint32_t dmpcOSQP(float *du){
 
-    uint32_t i;
+	uint32_t i;
 
 	osqp_update_data_vec(&solver, DMPC_M_Fj, ldata, udata);
 
 	osqp_solve(&solver);
-    
-    for(i = 0; i < DMPC_CONFIG_NU; i++){
-	    du[i] = solver.solution->x[i];
-    }
+
+	for(i = 0; i < DMPC_CONFIG_NU; i++){
+		du[i] = solver.solution->x[i];
+	}
 
 	return solver.info->iter;
+}
+//-----------------------------------------------------------------------------
+static uint32_t dmpcDAQP(float *du){
+
+	int i;
+	int sense[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT] = {0};
+	DAQPResult result;
+
+	DAQPProblem qp = {
+		DMPC_CONFIG_U_SIZE,
+		(DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT),
+		0,
+		(float*)DMPC_M_Ej,
+		DMPC_M_Fj,
+		(float*)DMPC_M_M2,
+		udata,
+		ldata,
+		sense
+	};
+
+	float x[DMPC_CONFIG_U_SIZE], lam[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT];
+
+	result.x = x; // primal variable
+	result.lam = lam; // dual variable
+
+	daqp_quadprog(&result,&qp,NULL);
+
+	for(i = 0; i < DMPC_CONFIG_NU; i++){
+		du[i] = x[i];
+	}
+
+	return (uint32_t)result.iter;
 }
 #endif
 //-----------------------------------------------------------------------------
