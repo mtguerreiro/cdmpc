@@ -52,6 +52,28 @@ static float ldata[LU_DATA_SIZE];
 static float udata[LU_DATA_SIZE];
 #endif
 
+static float daqp_x[DMPC_CONFIG_U_SIZE], daqp_lam[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT];
+
+static int daqp_sense[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT] = {0};
+static DAQPResult daqp_result = {
+	.x = daqp_x,
+	.lam = daqp_lam
+};
+
+static DAQPProblem daqp_qp = {
+	DMPC_CONFIG_U_SIZE,
+	(DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT),
+	0,
+	(float*)DMPC_M_Ej,
+	DMPC_M_Fj,
+	(float*)DMPC_M_M2,
+	udata,
+	ldata,
+	daqp_sense
+};
+
+static DAQPWorkspace daqp_work = {0};
+
 // DAQPWorkspace work = {0};
 // DAQPProblem qp = {n,m,ms,H,f,A,bupper,blower,sense};
 //=============================================================================
@@ -273,33 +295,23 @@ static uint32_t dmpcOSQP(float *du){
 static uint32_t dmpcDAQP(float *du){
 
 	int i;
-	int sense[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT] = {0};
-	DAQPResult result;
 
-	DAQPProblem qp = {
-		DMPC_CONFIG_U_SIZE,
-		(DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT),
-		0,
-		(float*)DMPC_M_Ej,
-		DMPC_M_Fj,
-		(float*)DMPC_M_M2,
-		udata,
-		ldata,
-		sense
-	};
+	static int isinit = 0;
 
-	float x[DMPC_CONFIG_U_SIZE], lam[DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT];
-
-	result.x = x; // primal variable
-	result.lam = lam; // dual variable
-
-	daqp_quadprog(&result,&qp,NULL);
-
-	for(i = 0; i < DMPC_CONFIG_NU; i++){
-		du[i] = x[i];
+	if(isinit == 0){
+		setup_daqp(&daqp_qp, &daqp_work, NULL);   // allocates internal memory and factorizes H
+		isinit = 1;
 	}
 
-	return (uint32_t)result.iter;
+	daqp_update_ldp(DAQP_UPDATE_v, &daqp_work, &daqp_qp);
+	// daqp_update_ldp(DAQP_UPDATE_d, &daqp_work, &daqp_qp);
+	daqp_solve(&daqp_result, &daqp_work);
+
+	for(i = 0; i < DMPC_CONFIG_NU; i++){
+		du[i] = daqp_x[i];
+	}
+
+	return (uint32_t)daqp_result.iter;
 }
 #endif
 //-----------------------------------------------------------------------------
