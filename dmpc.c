@@ -38,6 +38,9 @@ static uint32_t dmpcHildOpt(float *du);
 
 #ifdef DMPC_CONFIG_SOLVER_OSQP
 static uint32_t dmpcOSQP(float *du);
+#endif
+
+#ifdef DMPC_CONFIG_SOLVER_DAQP
 static uint32_t dmpcDAQP(float *du);
 #endif
 
@@ -46,7 +49,7 @@ static uint32_t dmpcDAQP(float *du);
 //=============================================================================
 /*--------------------------------- Globals ---------------------------------*/
 //=============================================================================
-#ifdef DMPC_CONFIG_SOLVER_OSQP
+#if defined(DMPC_CONFIG_SOLVER_OSQP) ||  defined(DMPC_CONFIG_SOLVER_DAQP)
 #define LU_DATA_SIZE (DMPC_CONFIG_NU_CNT*DMPC_CONFIG_L_U_CNT + DMPC_CONFIG_NXM_CNT*DMPC_CONFIG_L_X_CNT)
 static float ldata[LU_DATA_SIZE];
 static float udata[LU_DATA_SIZE];
@@ -86,7 +89,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	uint32_t iters = 0;
 
-	#if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
+#if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_NU];
@@ -112,7 +115,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	mulmv((float *)DMPC_Ky, DMPC_CONFIG_NU, e, DMPC_CONFIG_NY, auxm2);
 	sumv(auxm1, auxm2, DMPC_CONFIG_NU, du);
 
-	#else
+#else
 
 	/* Auxiliary variables for intermediate computations */
 	float auxm1[DMPC_CONFIG_U_SIZE];
@@ -141,7 +144,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 	mulmv((float *)DMPC_M_Fj_2, DMPC_CONFIG_U_SIZE, xa, DMPC_CONFIG_NXA, auxm2);
 	sumv(auxm1, auxm2, DMPC_CONFIG_U_SIZE, DMPC_M_Fj);
 
-	#ifdef DMPC_CONFIG_SOLVER_HILD
+#ifdef DMPC_CONFIG_SOLVER_HILD
 	/*
 	 * Computes the gam vector (or y vector). This vector holds the control
 	 * and state inequalities.
@@ -149,7 +152,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-	#if ( DMPC_CONFIG_NU_CNT != 0 )
+#if ( DMPC_CONFIG_NU_CNT != 0 )
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			DMPC_M_gam[j++] = -DMPC_CONFIG_U_MIN[k] + u_1[k];
@@ -160,10 +163,10 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			DMPC_M_gam[j++] =  DMPC_CONFIG_U_MAX[k] - u_1[k];
 		}
 	}
-	#endif
+#endif
 
 	/* Now, the state inequalities */
-	#if ( DMPC_CONFIG_NXM_CNT != 0 )
+#if ( DMPC_CONFIG_NXM_CNT != 0 )
 	mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
 	w = 0;
 	for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
@@ -177,12 +180,12 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			DMPC_M_gam[j++] =  DMPC_CONFIG_XM_MAX[k] - x[DMPC_CONFIG_XM_LIM_IDX[k]] - auxm1[w++];
 		}
 	}
-	#endif
+#endif
 
 	iters = dmpcHildOpt(du);
-	#endif
+#endif
 
-	#if defined(DMPC_CONFIG_SOLVER_OSQP)
+#if defined(DMPC_CONFIG_SOLVER_OSQP) ||  defined(DMPC_CONFIG_SOLVER_DAQP)
 	/*
 	 * Computes the gam vector (or y vector). This vector holds the control
 	 * and state inequalities.
@@ -190,7 +193,7 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 
 	/* We start by assembling the control inequalities */
 	j = 0;
-	#if ( DMPC_CONFIG_NU_CNT != 0 )
+#if ( DMPC_CONFIG_NU_CNT != 0 )
 	for(i = 0; i < DMPC_CONFIG_L_U_CNT; i++){
 		for(k = 0; k < DMPC_CONFIG_NU; k++){
 			ldata[j] = DMPC_CONFIG_U_MIN[k] - u_1[k];
@@ -198,10 +201,10 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			j++;
 		}
 	}
-	#endif
+#endif
 
 	/* Now, the state inequalities */
-	#if ( DMPC_CONFIG_NXM_CNT != 0 )
+#if ( DMPC_CONFIG_NXM_CNT != 0 )
 	mulmv((float *)DMPC_M_Fx, DMPC_CONFIG_L_X_CNT * DMPC_CONFIG_NXM_CNT, xa, DMPC_CONFIG_NXM, auxm1);
 	w = 0;
 	for(i = 0; i < DMPC_CONFIG_L_X_CNT; i++){
@@ -212,13 +215,18 @@ uint32_t dmpcOpt(float *x, float *x_1, float *r, float *u_1, uint32_t *niters, f
 			w++;
 		}
 	}
-	#endif
+#endif
+#endif
 
-	// iters = dmpcOSQP(du);
+#ifdef DMPC_CONFIG_SOLVER_OSQP
+	iters = dmpcOSQP(du);
+#endif
+
+#ifdef DMPC_CONFIG_SOLVER_DAQP
 	iters = dmpcDAQP(du);
-	#endif
+#endif
 
-	#endif // #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
+#endif // #if ( ( DMPC_CONFIG_NU_CNT == 0 ) && (DMPC_CONFIG_NXM_CNT == 0) )
 
 	if( niters != 0 ) *niters = iters;
 
@@ -289,7 +297,9 @@ static uint32_t dmpcOSQP(float *du){
 
 	return solver.info->iter;
 }
+#endif
 //-----------------------------------------------------------------------------
+#ifdef DMPC_CONFIG_SOLVER_DAQP
 static uint32_t dmpcDAQP(float *du){
 
 	int i;
