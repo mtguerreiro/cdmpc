@@ -32,7 +32,7 @@ int32_t dmpc_hild_solve(dmpc_data_t *prob_data, void *hild_data){
         n_iters = hdata->n_iter;
     }
     else{
-        n_iters = dmpc_hild_qp_solve(hdata->Hj, hdata->Kj, hdata->max_iter, hdata->lambda, hdata->n_lambda, hdata->tol);
+        n_iters = dmpc_hild_qp_solve(hdata->Hj, hdata->Kj, hdata->n_iter, hdata->lambda, hdata->n_lambda, hdata->tol);
     }
 
     prob_data->n_iters = n_iters;
